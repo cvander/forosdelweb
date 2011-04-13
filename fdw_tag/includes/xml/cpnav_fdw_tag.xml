@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<navgroups product="fdw_tag">
+
+	<navgroup phrase="fdw_tag_cpgroup" permissions="canadminforums" displayorder="44">
+
+		<navoption displayorder="10">
+			<phrase>fdw_tag_cpmanager</phrase>
+			<link>fdwtag.php</link>
+		</navoption>
+
+		<navoption displayorder="20">
+			<phrase>fdw_tag_cpaddnew</phrase>
+			<link>fdwtag.php?do=add</link>
+		</navoption>
+
+		<navoption displayorder="30">
+			<phrase>fdw_tag_cpconfig</phrase>
+			<link>options.php?do=options&amp;dogroup=fdw_tag_recomended</link>
+		</navoption>
+
+	</navgroup>
+
+</navgroups>

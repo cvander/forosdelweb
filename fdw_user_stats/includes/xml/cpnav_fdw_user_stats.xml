@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<navgroups product="fdw_user_stats">
+
+	<navgroup phrase="fdw_stats_cpgroup" permissions="canadminthreads" displayorder="243">
+
+		<navoption displayorder="10">
+			<phrase>fdw_stats_cpview</phrase>
+			<link>fdwstats.php</link>
+		</navoption>
+
+		<navoption displayorder="20">
+			<phrase>fdw_stats_cpconfig</phrase>
+			<link>options.php?do=options&amp;dogroup=fdw_stats_options</link>
+		</navoption>
+
+	</navgroup>
+
+</navgroups>

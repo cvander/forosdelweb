@@ -1,0 +1,20 @@
+#foundphotos {
+	width: 330px;
+	background-color: #FFF;
+}
+
+.found-photo {
+	position: relative;
+	padding: 3px;
+	margin: 7px;
+	float: left;
+	cursor: pointer;
+}
+
+
+.icon {
+	position: absolute;
+	z-index: 100;
+	top: 35px;
+	left: 35px;
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<navgroups product="fdw_social">
+
+	<navgroup phrase="fdw_social_cpgroup" permissions="canadminthreads" displayorder="85">
+
+		<navoption displayorder="10">
+			<phrase>fdw_social_cpmanager</phrase>
+			<link>fdwsocial.php</link>
+		</navoption>
+
+		<navoption displayorder="20">
+			<phrase>fdw_social_cpaddnew</phrase>
+			<link>fdwsocial.php?do=add</link>
+		</navoption>
+
+		<navoption displayorder="30">
+			<phrase>fdw_social_cpconfig</phrase>
+			<link>options.php?do=options&amp;dogroup=fdw_social_setup</link>
+		</navoption>
+
+	</navgroup>
+
+</navgroups>
