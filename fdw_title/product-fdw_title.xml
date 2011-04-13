@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_title" active="1">
+	<title>Title Verify</title>
+	<description>Opciones adicionales de verificación de títulos</description>
+	<version>1.0.1</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.0" maxversion="" />
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+		<template name="newthread_title_box" templatetype="template" date="1300390449" username="Admin" version="1.0.0"><![CDATA[<div style="border:1px solid #773333; background: #ffbbbb; color: #773333; padding: 3px;">$message</div>]]></template>
+		<template name="newthread_title_script" templatetype="template" date="1300390303" username="Admin" version="1.0.0"><![CDATA[<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_ajax_title.js"></script>
+<script type="text/javascript">
+var subjectobj = document.getElementsByName("subject")[0];
+subjectobj.id = "subjectobj";
+new fdw_AJAX_TitleVerify(subjectobj, "$vboptions[cleargifurl]");
+</script>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Title: Ajax verification</title>
+			<hookname>ajax_complete</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'verifytitle' AND function_exists('fdw_title_verify'))
+{
+	$vbulletin->input->clean_gpc('p', 'title', TYPE_STR);
+	$vbulletin->GPC['title'] = convert_urlencoded_unicode($vbulletin->GPC['title']);
+	
+	if (!fdw_title_verify($vbulletin->GPC['title']))
+	{
+		$image = $stylevar['imgdir_misc'] . '/cross.png';
+		
+		$message = fetch_error('fdw_descriptive_title');
+		eval('$messagebox = "' . fetch_template('newthread_title_box') . '";');
+	}
+	else
+	{
+		$image = $stylevar['imgdir_misc'] . '/tick.png';
+		$messagebox = '';
+	}
+	
+	$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+	$xml->add_tag('message', $messagebox, array('image' => $image));
+	$xml->print_xml();
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Title: Cache templates</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_title_enable'])
+{
+	if (THIS_SCRIPT == 'newthread')
+	{
+		$globaltemplates[] = 'newthread_title_script';
+	}
+	if (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'verifytitle')
+	{
+		$globaltemplates[] = 'newthread_title_box';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Title: Verify thread edit</title>
+			<hookname>editpost_update_thread</hookname>
+			<phpcode><![CDATA[if (function_exists('fdw_title_verify'))
+{
+	if ($can_update_thread AND $edit['title'] != $postinfo['title'] AND !fdw_title_verify(unhtmlspecialchars($edit['title'])))
+	{
+		$threadman->set('title', '');
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="1">
+			<title>FDW Title: Verification function</title>
+			<hookname>global_setup_complete</hookname>
+			<phpcode><![CDATA[if
+(
+	$vbulletin->options['fdw_title_enable']
+	AND
+	(
+		(THIS_SCRIPT == 'newthread' AND $_POST['do'] == 'postthread')
+		OR (THIS_SCRIPT == 'editpost' AND $_POST['do'] == 'updatepost')
+		OR (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'verifytitle')
+	)
+)
+{
+	function fdw_title_verify($title)
+	{
+		global $vbulletin;
+		
+		$title = strtolower(trim($title));
+		$title = preg_replace('/[\s,.]+/', ' ', $title);
+		
+		if ($vbulletin->options['fdw_title_filter'])
+		{
+			$title = str_ireplace(
+				array(
+					'À', 'Á', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É',
+					'Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó', 'Ô',
+					'Õ', 'Ö', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'ÿ'
+				),
+				array(
+					'a', 'a', 'a', 'a', 'a', 'a', 'a', 'e', 'c', 'e', 'e',
+					'e', 'e', 'i', 'i', 'i', 'i', 'd', 'n', 'o', 'o', 'o',
+					'o', 'o', 'o', 'u', 'u', 'u', 'u', 'y', 'y'
+				),
+				$title
+			);
+			$title = preg_replace('/(?:([a-z])\1{2,}|(?<=\s)[^a-z]+|^[^a-z]+|[^a-z]+(?=\s)|[^a-z]+$)/', '\1', $title);
+		}
+		
+		$badwords = array_map('preg_quote', preg_split('/\s+/', $vbulletin->options['fdw_title_badwords'], -1, PREG_SPLIT_NO_EMPTY));
+		if (count($badwords))
+		{
+			if (preg_match('/(?:^|\s)(?:' . implode('|', $badwords) . ')(?:$|\s)/', $title))
+			{
+				return false;
+			}
+		}
+		
+		if (!empty($vbulletin->options['fdw_title_regexp']))
+		{
+			if (preg_match($vbulletin->options['fdw_title_regexp'], $title))
+			{
+				return false;
+			}
+		}
+		
+		$commonwords = array_map('preg_quote', preg_split('/\s+/', $vbulletin->options['fdw_title_common'], -1, PREG_SPLIT_NO_EMPTY));
+		if (count($commonwords))
+		{
+			$title = preg_replace('/(?:^|\s)(?:' . implode('|', $commonwords) . ')(?:$|\s)/', '', $title);
+		}
+		
+		if (vbstrlen($title) < $vbulletin->options['fdw_title_length'])
+		{
+			return false;
+		}
+		
+		return true;
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Title: Verify new thread</title>
+			<hookname>newpost_process</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'newthread' AND function_exists('fdw_title_verify'))
+{
+	if (!fdw_title_verify($post['title']))
+	{
+		$errors[] = fetch_error('fdw_descriptive_title');
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Title: Verify script</title>
+			<hookname>newthread_form_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_title_enable'])
+{
+	eval('$newpost[\'subject_script\'] = "' . fetch_template('newthread_title_script') . '";');
+	if ($vbulletin->options['fdw_title_template'])
+	{
+		$messagearea = "$newpost[subject_script] $messagearea";
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="fdw_descriptive_title" date="1300384533" username="Admin" version="1.0.0"><![CDATA[Debe escribir un título más descriptivo para el tema]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_title_badwords_desc" date="1300373961" username="Admin" version="1.0.0"><![CDATA[Palabras no permitidas para títulos de temas]]></phrase>
+			<phrase name="setting_fdw_title_badwords_title" date="1300373961" username="Admin" version="1.0.0"><![CDATA[Palabras prohibidas]]></phrase>
+			<phrase name="setting_fdw_title_common_desc" date="1300373918" username="Admin" version="1.0.0"><![CDATA[Palabras comunes que no serán consideradas al verificar el mínimo de caracteres]]></phrase>
+			<phrase name="setting_fdw_title_common_title" date="1300373918" username="Admin" version="1.0.0"><![CDATA[Palabras comunes]]></phrase>
+			<phrase name="setting_fdw_title_enable_desc" date="1300373439" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar verificaciones adicionales para títulos de temas]]></phrase>
+			<phrase name="setting_fdw_title_enable_title" date="1300373439" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="setting_fdw_title_filter_desc" date="1300379718" username="Admin" version="1.0.0"><![CDATA[Remover acentos, caracteres no alfabéticos al principio y al final de las palabras, y letras repetidas antes de realizar las verificaciones]]></phrase>
+			<phrase name="setting_fdw_title_filter_title" date="1300379718" username="Admin" version="1.0.0"><![CDATA[Filtrar caracteres]]></phrase>
+			<phrase name="setting_fdw_title_length_desc" date="1300373798" username="Admin" version="1.0.0"><![CDATA[Mínimo de caracteres para considerar un título como válido]]></phrase>
+			<phrase name="setting_fdw_title_length_title" date="1300373798" username="Admin" version="1.0.0"><![CDATA[Mínimo de caracteres]]></phrase>
+			<phrase name="setting_fdw_title_regexp_desc" date="1300811620" username="Admin" version="1.0.1"><![CDATA[Expresión regular de títulos no válidos]]></phrase>
+			<phrase name="setting_fdw_title_regexp_title" date="1300811620" username="Admin" version="1.0.1"><![CDATA[Expresión regular]]></phrase>
+			<phrase name="setting_fdw_title_template_desc" date="1300390010" username="Admin" version="1.0.0"><![CDATA[Agregar automáticamente script de verificación a la plantilla 'newthread']]></phrase>
+			<phrase name="setting_fdw_title_template_title" date="1300390010" username="Admin" version="1.0.0"><![CDATA[Plantilla]]></phrase>
+			<phrase name="settinggroup_fdw_title_setup" date="1300373404" username="Admin" version="1.0.0"><![CDATA[Title Verify]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_title_setup" displayorder="630">
+			<setting varname="fdw_title_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_title_length" displayorder="20">
+				<datatype>integer</datatype>
+				<defaultvalue>3</defaultvalue>
+			</setting>
+			<setting varname="fdw_title_common" displayorder="30">
+				<datatype>free</datatype>
+				<optioncode>textarea</optioncode>
+			</setting>
+			<setting varname="fdw_title_badwords" displayorder="40">
+				<datatype>free</datatype>
+				<optioncode>textarea</optioncode>
+			</setting>
+			<setting varname="fdw_title_filter" displayorder="50">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_title_template" displayorder="60">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_title_regexp" displayorder="70">
+				<datatype>free</datatype>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_ad" active="1">
+	<title>Ad Manager</title>
+	<description>Gestionar publicidad en el sidebar</description>
+	<version>1.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwad (
+		adid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		title VARCHAR(250) NOT NULL,
+		location ENUM ('right', 'left') NOT NULL,
+		display INT UNSIGNED NOT NULL,
+		code MEDIUMTEXT NOT NULL,
+		wrapper TINYINT NOT NULL,
+		active TINYINT NOT NULL,
+		PRIMARY KEY (adid)
+	)
+");
+
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwadcriteria (
+		adid INT UNSIGNED NOT NULL,
+		typeid INT UNSIGNED NOT NULL,
+		value MEDIUMTEXT NOT NULL
+	)
+");
+
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwadcriteriatype (
+		typeid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		name VARCHAR(250) NOT NULL,
+		optioncode TEXT NOT NULL,
+		templatecode TEXT NOT NULL,
+		validation TEXT NOT NULL,
+		defaultvalue TEXT NOT NULL,
+		display TEXT NOT NULL,
+		PRIMARY KEY (typeid)
+	)
+");
+
+$tableprefix = TABLE_PREFIX;
+$fdwadcriteriadata = <<<INSERTSQL
+INSERT INTO `{$tableprefix}fdwadcriteriatype` (`typeid`, `name`, `optioncode`, `templatecode`, `validation`, `defaultvalue`, `display`) VALUES
+(1, 'in_usergroup_x', '\$html = '''';\\r\\nforeach (\$vbulletin->usergroupcache AS \$usergroupid => \$usergroup)\\r\\n{\\r\\n	\$selected = in_array(\$usergroupid, \$defaultvalue) ? '' selected="selected"'' : '''';\\r\\n	\$html .= "<option value=\\\\"\$usergroupid\\\\"\$selected>\$usergroup[title]</option>";\\r\\n}\\r\\nreturn array("\\r\\n	<select name=\\\\"criteria[in_usergroup_x][]\\\\" multiple=\\\\"multiple\\\\" size=\\\\"4\\\\" style=\\\\"display:block\\\\">\\r\\n		\$html\\r\\n	</select>\\r\\n");', 'return array(''is_member_of(\$vbulletin->userinfo, '' . implode('', '', \$values) . '')'');', 'if (!is_array(\$values) OR !count(\$values))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nforeach (\$values AS \$value)\\r\\n{\\r\\n	if (!in_array((int) \$value, array_keys(\$vbulletin->usergroupcache)))\\r\\n	{\\r\\n		return false;\\r\\n	}\\r\\n}\\r\\n\\r\\nreturn true;', 'return array();', ''),
+(2, 'browsing_forum_x', '\$forums = construct_forum_chooser_options();\\r\\nforeach (\$forums AS \$forumid => \$forumname)\\r\\n{\\r\\n	\$selected = in_array(\$forumid, \$defaultvalue[''forum'']) ? '' selected="selected"'' : '''';\\r\\n	\$html .= "<option value=\\\\"\$forumid\\\\"\$selected>\$forumname</option>";\\r\\n}\\r\\n\$childs = (\$defaultvalue[''childs'']) ? '' checked="checked"'' : '''';\\r\\nreturn array("\\r\\n	<select name=\\\\"criteria[browsing_forum_x][forum][]\\\\" multiple=\\\\"multiple\\\\" style=\\\\"display:block\\\\" size=\\\\"4\\\\">\\r\\n		\$html\\r\\n	</select>",\\r\\n	"<input type=\\\\"checkbox\\\\" id=\\\\"browsing_forum_x_criteria\\\\" style=\\\\"margin-left:20px\\\\" name=\\\\"criteria[browsing_forum_x][childs]\\\\"\$childs />"\\r\\n);', '\$forumlist = \$values[''forum''];\\r\\nif (\$values[''childs''])\\r\\n{\\r\\n	\$forumchilds = \$db->query_read("SELECT childlist FROM " . TABLE_PREFIX . "forum WHERE forumid IN (" . implode('', '', \$forumlist) . ")");\\r\\n	while (\$forumchild = \$db->fetch_array(\$forumchilds))\\r\\n	{\\r\\n		\$forumlist = array_merge(\$forumlist, explode('','', \$forumchild[''childlist'']));\\r\\n	}\\r\\n	\$db->free_result(\$forumchilds);\\r\\n}\\r\\n\$forumlist = array_unique(\$forumlist);\\r\\nreturn array(''in_array(\$forumid, array('' . implode('', '', \$forumlist) . ''))'');', 'if (!is_array(\$values) OR !is_array(\$values[''forum'']))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\n\$forums = array_keys(construct_forum_chooser_options());\\r\\nforeach (\$values[''forum''] AS \$value)\\r\\n{\\r\\n	if (!in_array(\$value, \$forums))\\r\\n	{\\r\\n		return false;\\r\\n	}\\r\\n}\\r\\n\\r\\nreturn true;', 'return array(\\r\\n	''forum'' => array(),\\r\\n	''childs'' => true\\r\\n);', ''),
+(3, 'style_is_x', 'require_once(DIR . ''/includes/adminfunctions_template.php'');\\r\\ncache_styles();\\r\\n\$style_options = array();\\r\\n\\r\\nforeach(\$GLOBALS[''stylecache''] AS \$style)\\r\\n{\\r\\n	\$style_options["\$style[styleid]"] = construct_depth_mark(\$style[''depth''], ''--'') . '' '' . \$style[''title''];\\r\\n}\\r\\nreturn array("\\r\\n	<select name=\\\\"criteria[style_is_x]\\\\">" .\\r\\n		construct_select_options(\$style_options, \$defaultvalue) . "\\r\\n	</select>\\r\\n");', 'return array("STYLEID == \$values");', 'global \$stylecache;\\r\\n\\r\\nrequire_once(DIR . ''/includes/adminfunctions_template.php'');\\r\\ncache_styles();\\r\\n\\r\\n\$styleids = array();\\r\\n\\r\\nforeach(\$stylecache AS \$style)\\r\\n{\\r\\n	\$styleids[] = \$style[''styleid''];\\r\\n}\\r\\n\\r\\nreturn in_array(\$values, \$styleids);', 'global \$stylecache;\\r\\n\\r\\nrequire_once(DIR . ''/includes/adminfunctions_template.php'');\\r\\ncache_styles();\\r\\n\\r\\nreset(\$stylecache);\\r\\nreturn key(\$stylecache);', ''),
+(4, 'last_visit_x_days', 'return array("\\r\\n	<input type=\\\\"text\\\\" class=\\\\"bginput\\\\" size=\\\\"5\\\\" name=\\\\"criteria[last_visit_x_days]\\\\" value=\\\\"\$defaultvalue\\\\" \\\\">\\r\\n");', 'return array(''\$vbulletin->userinfo[\\\\''lastactivity\\\\''] < TIMENOW - '' . (86400 * (int) \$values));', 'return is_numeric(\$values);', 'return 30;', ''),
+(5, 'last_post_x_days', 'return array("\\r\\n	<input type=\\\\"text\\\\" class=\\\\"bginput\\\\" size=\\\\"5\\\\" name=\\\\"criteria[last_post_x_days]\\\\" value=\\\\"\$defaultvalue\\\\" \\\\">\\r\\n");', 'return array(''\$vbulletin->userinfo[\\\\''lastpost\\\\''] < TIMENOW - '' . (86400 * (int) \$values));', 'if (!is_numeric(\$values))\\r\\n{\\r\\n	print_stop_message(''last_visit_x_days_error'');\\r\\n}\\r\\n\\r\\nreturn true;', 'return 30;', ''),
+(6, 'has_x_postcount', 'return array(\\r\\n	''<input type="text" name="criteria[has_x_postcount][0]" size="5" class="bginput" value="'' .\\r\\n		\$defaultvalue[0] .\\r\\n	''" />'',\\r\\n	''<input type="text" name="criteria[has_x_postcount][1]" size="5" class="bginput" value="'' .\\r\\n		\$defaultvalue[1] .\\r\\n	''" />''\\r\\n);', 'return array(''\$vbulletin->userinfo[\\\\''posts\\\\''] >= '' . (int) \$values[0] . '' AND \$vbulletin->userinfo[\\\\''posts\\\\''] <= '' . (int) \$values[1]);', 'if (!is_array(\$values))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nif (!is_numeric(\$values[0]) OR !is_numeric(\$values[1]))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nreturn \$values[0] <= \$values[1];', 'return array('''', '''');', ''),
+(7, 'has_never_posted', 'return array(''<input type="hidden" name="criteria[has_never_posted]" value="1" />'');', 'return array(''\$vbulletin->userinfo[\\\\''lastpost\\\\''] == 0'');', '', '', ''),
+(8, 'has_x_reputation', 'return array(\\r\\n	''<input type="text" name="criteria[has_x_reputation][0]" size="5" class="bginput" value="'' .\\r\\n		\$defaultvalue[0] .\\r\\n	''" />'',\\r\\n	''<input type="text" name="criteria[has_x_reputation][1]" size="5" class="bginput" value="'' .\\r\\n		\$defaultvalue[1] .\\r\\n	''" />''\\r\\n);', 'return array(''\$vbulletin->userinfo[\\\\''reputation\\\\''] >= '' . (int) \$values[0] . '' AND \$vbulletin->userinfo[\\\\''reputation\\\\''] <= '' . (int) \$values[1]);', 'if (!is_array(\$values))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nif (!is_numeric(\$values[0]) OR !is_numeric(\$values[1]))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nreturn \$values[0] <= \$values[1];', 'return array(0, 100);', ''),
+(9, 'date_between', 'return array(\\r\\n	''<input type="text" name="criteria[date_between][0]" size="10" class="bginput" value="'' . \$defaultvalue[0] . ''" />'',\\r\\n	''<input type="text" name="criteria[date_between][1]" size="10" class="bginput" value="'' . \$defaultvalue[1] . ''" />'',\\r\\n	''<select name="criteria[date_between][2]">\\r\\n		<option value="1"'' . (\$defaultvalue[2] == 1 ? '' selected="selected"'' : '''') . ''>'' . \$vbphrase[''user_timezone''] . ''</option>\\r\\n		<option value="2"'' . (\$defaultvalue[2] == 2 ? '' selected="selected"'' : '''') . ''>'' . \$vbphrase[''utc_universal_timezone''] . ''</option>\\r\\n	</select>''\\r\\n);\\r\\n', 'preg_match(''/^(\\\\d{1,2})-(\\\\d{1,2})-(\\\\d{4})\$/'', \$values[0], \$firstdate);\\r\\npreg_match(''/^(\\\\d{1,2})-(\\\\d{1,2})-(\\\\d{4})\$/'', \$values[1], \$seconddate);\\r\\n\\r\\nif (\$values[2] == 1)\\r\\n{\\r\\n	return array(\\r\\n		"TIMENOW - \\\\\$vbulletin->options[''hourdiff''] >= mktime(0, 0, 0, " . (int) \$firstdate[2] . ", " . (int) \$firstdate[1] . ", " . (int) \$firstdate[3]. ")" .\\r\\n			" AND TIMENOW - \\\\\$vbulletin->options[''hourdiff''] <= mktime(23, 59, 59, " . (int) \$firstdate[2] . ", " . (int) \$firstdate[1] . ", " . (int) \$firstdate[3] . ")"\\r\\n	);\\r\\n}\\r\\nelse\\r\\n{\\r\\n	return array(\\r\\n		''gmmktime() >= gmmktime(0, 0, 0, '' . (int) \$firstdate[2] . '', '' . (int) \$firstdate[1] . '', '' . \$firstdate[3] . '')'' .\\r\\n			'' AND gmmktime() <= gmmktime(23, 59, 59, '' . (int) \$seconddate[2] . '', '' . (int) \$seconddate[1] . '', '' . (int) \$seconddate[3] . '')''\\r\\n	);\\r\\n}', 'if (!is_array(\$values))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nif (!preg_match(''/^(\\\\d{1,2})-(\\\\d{1,2})-(\\\\d{4})\$/'', \$values[0], \$parts))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\n\$firstdate = mktime(0, 0, 0, \$parts[2], \$parts[1], \$parts[3]);\\r\\n\\r\\nif (!preg_match(''/^(\\\\d{1,2})-(\\\\d{1,2})-(\\\\d{4})\$/'', \$values[1], \$parts))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\n\$seconddate = mktime(0, 0, 0, \$parts[2], \$parts[1], \$parts[3]);\\r\\n\\r\\nif (\$firstdate === false OR \$seconddate === false OR \$firstdate < 0 OR \$seconddate < 0)\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nreturn \$firstdate <= \$seconddate;', 'return array(vbdate(''d-m-Y'', TIMENOW, false, false), vbdate(''d-m-Y'', TIMENOW, false, false), 1);', ''),
+(10, 'time_between', 'return array(\\r\\n	''<input type="text" name="criteria[time_between][0]" size="5" class="bginput" value="'' . \$defaultvalue[0] . ''" />'',\\r\\n	''<input type="text" name="criteria[time_between][1]" size="5" class="bginput" value="'' . \$defaultvalue[1] . ''" />'',\\r\\n	''<select name="criteria[time_between][2]">\\r\\n		<option value="1"'' . (\$defaultvalue[2] == 1 ? '' selected="selected"'' : '''') . ''>'' . \$vbphrase[''user_timezone''] . ''</option>\\r\\n		<option value="2"'' . (\$defaultvalue[2] == 2 ? '' selected="selected"'' : '''') . ''>'' . \$vbphrase[''utc_universal_timezone''] . ''</option>\\r\\n	</select>''\\r\\n);', 'preg_match(''/^(\\\\d{1,2}):(\\\\d{2})\$/'', \$values[0], \$firsttime);\\r\\npreg_match(''/^(\\\\d{1,2}):(\\\\d{2})\$/'', \$values[1], \$secondtime);\\r\\n\\r\\nif (\$values[2] == 1)\\r\\n{\\r\\n	return array(\\r\\n		"TIMENOW - \\\\\$vbulletin->options[''hourdiff''] >= mktime(" . (int) \$firsttime[1] . ", " . (int) \$firsttime[2] . ", 0)" .\\r\\n			" AND TIMENOW - \\\\\$vbulletin->options[''hourdiff''] <= mktime(" . (int) \$secondtime[1] . ", " . (int) \$secondtime[2] . ", 59)"\\r\\n	);\\r\\n}\\r\\nelse\\r\\n{\\r\\n	return array(\\r\\n		''gmmktime() >= gmmktime('' . (int) \$firsttime[1] . '', '' . (int) \$firsttime[2] . '', 0)'' .\\r\\n			'' AND gmmktime() <= gmmktime('' . (int)\$secondtime[1] . '', '' . (int) \$secondtime[2] . '', 59)''\\r\\n	);\\r\\n}', 'if (!is_array(\$values))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nif (!preg_match(''/^(\\\\d{1,2}):(\\\\d{2})\$/'', \$values[0], \$parts))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\n\$firsttime = mktime(\$parts[1], \$parts[2], 0);\\r\\n\\r\\nif (!preg_match(''/^(\\\\d{1,2}):(\\\\d{2})\$/'', \$values[1], \$parts))\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\n\$secondtime = mktime(\$parts[1], \$parts[2], 0);\\r\\n\\r\\nif (\$firsttime === false OR \$secondtime === false OR \$firsttime < 0 OR \$secondtime < 0)\\r\\n{\\r\\n	return false;\\r\\n}\\r\\n\\r\\nreturn \$firsttime <= \$secondtime;', 'return array(vbdate(''H:i'', TIMENOW, false, false), vbdate(''H:i'', TIMENOW, false, false), 1);', ''),
+(11, 'ad_x_not_displayed', 'return array(''\\r\\n	<select name="criteria[ad_x_not_displayed]">\\r\\n		'' . construct_select_options(\$adlist, \$defaultvalue) . ''\\r\\n	</select>\\r\\n'');', 'return array(''!in_array('' . \$values . '', \$fdwad_displayed)'');', '\$adid = (int) \$values;\\r\\n\$adexists = \$db->query_first("\\r\\n	SELECT adid FROM " . TABLE_PREFIX . "fdwad\\r\\n	WHERE adid = \$adid AND display < {\$vbulletin->GPC[''display'']} AND location = ''{\$vbulletin->GPC[''location'']}''\\r\\n");\\r\\nreturn (bool) \$adexists;', 'return \$selected;', '\$adlist = array();\\r\\n\$selected = '''';\\r\\nforeach (\$ad_cache AS \$adid => \$ad)\\r\\n{\\r\\n	if (\$ad[''active''])\\r\\n	{\\r\\n		if (empty(\$selected))\\r\\n		{\\r\\n			\$selected = \$ad[''adid''];\\r\\n		}\\r\\n		\$adlist["\$ad[adid]"] = \$ad[''title''];\\r\\n	}\\r\\n}\\r\\n\\r\\nreturn (bool) count(\$adlist);')
+INSERTSQL;
+
+$db->query_write($fdwadcriteriadata);]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwad");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwadcriteria");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwadcriteriatype");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="forumdisplay_ad_left" templatetype="template" date="1283411542" username="Admin" version="1.0.0" />
+		<template name="forumdisplay_ad_left_wrapper" templatetype="template" date="1283405137" username="Admin" version="1.0.0"><![CDATA[<div id="fdwad_leftads" style="position:absolute;width: 125px">
+	{$fdwad_adcode['left']['code']}
+</div>]]></template>
+		<template name="forumdisplay_ad_right" templatetype="template" date="1283411542" username="Admin" version="1.0.0" />
+		<template name="forumdisplay_ad_right_wrapper" templatetype="template" date="1283405158" username="Admin" version="1.0.0"><![CDATA[<div id="fdwad_rightads" style="position:absolute;width: 125px">
+	{$fdwad_adcode['right']['code']}
+</div>]]></template>
+		<template name="forumdisplay_ad_wrapper" templatetype="template" date="1283372410" username="Admin" version="1.0.0"><![CDATA[<div id="fdwad_$adid">
+	$ad[code]
+</div>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Ad: Delete Confirmation</title>
+			<hookname>admin_delete_confirmation</hookname>
+			<phpcode><![CDATA[if ($table == 'fdwad')
+{
+	$idfield = 'adid';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Ad: Ad templates cache</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_ad_enable']) {
+	if (THIS_SCRIPT == 'forumdisplay')
+	{
+		$globaltemplates = array_merge($globaltemplates, array(
+			'forumdisplay_ad_left',
+			'forumdisplay_ad_left_wrapper',
+			'forumdisplay_ad_right',
+			'forumdisplay_ad_right_wrapper',
+		));
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="10">
+			<title>FDW Ad: Parse ads</title>
+			<hookname>forumdisplay_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_ad_enable'])
+{
+	$fdwad_adcode = array('left' => array('style' => 'margin-left: 135px;'), 'right' => array('style' => 'margin-right: 135px;'));
+	
+	$fdwad_displayed = array();
+	eval('$fdwad_adcode[\'left\'][\'code\'] = "' . fetch_template('forumdisplay_ad_left') . '";');
+	$fdwad_adcode['left']['has_content'] = !empty($fdwad_adcode['left']['code']);
+	eval('$fdwad_adcode[\'left\'][\'code\'] = "' . fetch_template('forumdisplay_ad_left_wrapper') . '";');
+	
+	$fdwad_displayed = array();
+	eval('$fdwad_adcode[\'right\'][\'code\'] = "' . fetch_template('forumdisplay_ad_right') . '";');
+	$fdwad_adcode['right']['has_content'] = !empty($fdwad_adcode['right']['code']);
+	eval('$fdwad_adcode[\'right\'][\'code\'] = "' . fetch_template('forumdisplay_ad_right_wrapper') . '";');
+	
+	if ($vbulletin->options['fdw_ad_autotemplate'])
+	{
+		if (!$fdwad_adcode['left']['has_content'] AND !$fdwad_adcode['right']['has_content'])
+		{
+			return;
+		}
+		
+		$fdwad_location =& $ad_location['ad_forumdisplay_afterthreads'];
+		
+		$fdwad_location = '<div id="fdwad_position"></div><script type="text/javascript">
+			(function() {
+				var adposition = YAHOO.util.Dom.getRegion(document.getElementById("fdwad_position"));
+				var threadspos = YAHOO.util.Dom.getRegion(document.getElementById("inlinemodform"));
+				
+				var leftads = document.getElementById("fdwad_leftads");
+				if (leftads) {
+					YAHOO.util.Dom.setXY(leftads, [adposition.left, threadspos.top]);
+				}
+				
+				var rightads = document.getElementById("fdwad_rightads");
+				if (rightads) {
+					YAHOO.util.Dom.setXY(rightads, [threadspos.right' . (($show['forumslist']) ?  ' + 5' : ' - 5') . ', threadspos.top]);
+				}
+			})();
+		</script>' . $fdwad_location;
+		
+		if ($fdwad_adcode['left']['has_content'])
+		{
+			$fdwad_location = $fdwad_adcode['left']['code'] . $fdwad_location;
+		}
+		
+		if ($fdwad_adcode['right']['has_content'])
+		{
+			$fdwad_location = $fdwad_adcode['right']['code'] . $fdwad_location;
+		}
+		
+		$headinclude .= '<style type="text/css">
+			#inlinemodform {
+				' . ($fdwad_adcode['left']['has_content'] ? $fdwad_adcode['left']['style'] : '') .
+				($fdwad_adcode['right']['has_content'] ? $fdwad_adcode['right']['style'] : '') . '
+			}
+		</style>';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Ad: Safe Template Functions</title>
+			<hookname>template_safe_functions</hookname>
+			<phpcode><![CDATA[if (defined('ADMINCP_SCRIPT'))
+{
+	if (ADMINCP_SCRIPT == 'fdwad')
+	{
+		$safe_functions[] = 'mktime';
+		$safe_functions[] = 'gmmktime';
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Control Panel Home Pages" fieldname="cphome">
+			<phrase name="fdw_ad_cpaddnew" date="1283143617" username="Admin" version="1.0.0"><![CDATA[Agregar publicidad]]></phrase>
+			<phrase name="fdw_ad_cpconfig" date="1283143570" username="Admin" version="1.0.0"><![CDATA[Configuración]]></phrase>
+			<phrase name="fdw_ad_cpgroup" date="1283143546" username="Admin" version="1.0.0"><![CDATA[Publicidad]]></phrase>
+			<phrase name="fdw_ad_cpmanager" date="1283143598" username="Admin" version="1.0.0"><![CDATA[Gestionar publicidad]]></phrase>
+		</phrasetype>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="ad_x_not_displayed_error" date="1283362117" username="Admin" version="1.0.0"><![CDATA[No ha especificado una publicidad válida.<br /><br /><strong>NOTA:</strong> Debe tener en cuenta que la publicidad especificada debe tener un <em>displayorder</em> inferior a la publicidad que está siendo editada y deben tener la misma localización.]]></phrase>
+			<phrase name="browsing_forum_x_error" date="1283356050" username="Admin" version="1.0.0"><![CDATA[No ha seleccionado foros válidos]]></phrase>
+			<phrase name="date_between_error" date="1283359933" username="Admin" version="1.0.0"><![CDATA[El rango de fechas especificado no es válido]]></phrase>
+			<phrase name="deleted_ad_successfully" date="1283350966" username="Admin" version="1.0.0"><![CDATA[La publicidad especificada fue eliminada]]></phrase>
+			<phrase name="fdwad_cannot_save" date="1283370648" username="Admin" version="1.0.0"><![CDATA[No se pudo actualizar la plantilla correspondiente. Por favor, verifique que la plantilla {1} existe]]></phrase>
+			<phrase name="fdwad_invalid_code" date="1283369711" username="Admin" version="1.0.0"><![CDATA[Ocurrieron los siguientes errores al intentar procesar el código de la publicidad:<br /><i>{1}</i><br />Esto puede ser causado por una condición mal formada.]]></phrase>
+			<phrase name="has_x_postcount_error" date="1283357538" username="Admin" version="1.0.0"><![CDATA[El rango de mensajes especificado no es válido]]></phrase>
+			<phrase name="has_x_reputation_error" date="1283357630" username="Admin" version="1.0.0"><![CDATA[El rango de reputación especificado no es válido]]></phrase>
+			<phrase name="in_usergroup_x_error" date="1283355566" username="Admin" version="1.0.0"><![CDATA[No ha seleccionado grupos de usuarios válidos]]></phrase>
+			<phrase name="last_visit_x_days_error" date="1283357285" username="Admin" version="1.0.0"><![CDATA[Número de días especificado no es válido]]></phrase>
+			<phrase name="style_is_x_error" date="1283356753" username="Admin" version="1.0.0"><![CDATA[No ha especificado un estilo válido]]></phrase>
+			<phrase name="time_between_error" date="1283361110" username="Admin" version="1.0.0"><![CDATA[El rango de horas especificado no es válido]]></phrase>
+		</phrasetype>
+		<phrasetype name="FDW Ad Manager" fieldname="fdwad">
+			<phrase name="ad_code_description" date="1283370031" username="Admin" version="1.0.0"><![CDATA[Escriba el código proporcionado por el sistema de publicidad.<br />El código es procesado como una plantilla, puede utilizar las variables y condiciones proporcionadas por el sistema de plantillas.]]></phrase>
+			<phrase name="ad_edit" date="1283151248" username="Admin" version="1.0.0"><![CDATA[Editar publicidad]]></phrase>
+			<phrase name="ad_title_description" date="1283152079" username="Admin" version="1.0.0"><![CDATA[Sólo para identificarlo en el Panel de Administración]]></phrase>
+			<phrase name="ad_wrapper_description" date="1283153355" username="Admin" version="1.0.0"><![CDATA[Utilizar el envoltorio por defecto definido en las plantillas para la publicidad.]]></phrase>
+			<phrase name="ad_x_not_displayed_criteria" date="1283345368" username="Admin" version="1.0.0"><![CDATA[Esta publicidad no se muestra {1}]]></phrase>
+			<phrase name="add_new" date="1283146703" username="Admin" version="1.0.0"><![CDATA[Agregar publicidad]]></phrase>
+			<phrase name="admanager" date="1283145844" username="Admin" version="1.0.0"><![CDATA[Ad Manager]]></phrase>
+			<phrase name="are_you_sure_want_to_delete_ad_x" date="1283350292" username="Admin" version="1.0.0"><![CDATA[¿Está seguro de que desea eliminar permanentemente la publicidad <em>{1}</em>?<br /><span class="smallfont">({2}={3})</span><br />
+<br />
+Esta acción no puede ser revertida.]]></phrase>
+			<phrase name="browsing_forum_x_criteria" date="1283343268" username="Admin" version="1.0.0"><![CDATA[Está navegando por determinados foros: {1} {2} <label for="browsing_forum_x_criteria">Incluir subforos</label>]]></phrase>
+			<phrase name="criterion_is_active" date="1283343674" username="Admin" version="1.0.0"><![CDATA[Activar criterio]]></phrase>
+			<phrase name="date_between_criteria" date="1283341135" username="Admin" version="1.0.0"><![CDATA[La fecha está entre {1} y {2} {3} (Use el formato dd-mm-aaaa)]]></phrase>
+			<phrase name="display_if_" date="1283185026" username="Admin" version="1.0.0"><![CDATA[Mostrar esta publicidad si:]]></phrase>
+			<phrase name="fdwadtitle" date="1283145867" username="Admin" version="1.0.0"><![CDATA[Publicidad]]></phrase>
+			<phrase name="has_never_posted_criteria" date="1283361582" username="Admin" version="1.0.0"><![CDATA[Nunca ha publicado un mensaje{1}]]></phrase>
+			<phrase name="has_x_postcount_criteria" date="1283339981" username="Admin" version="1.0.0"><![CDATA[Su contador de mensajes está entre {1} y {2}]]></phrase>
+			<phrase name="has_x_reputation_criteria" date="1283340307" username="Admin" version="1.0.0"><![CDATA[Su nivel de reputación está entre {1} y {2}]]></phrase>
+			<phrase name="in_usergroup_x_criteria" date="1283222676" username="Admin" version="1.0.0"><![CDATA[Pertenece a determinado grupo de usuarios: {1}]]></phrase>
+			<phrase name="last_post_x_days_criteria" date="1283339361" username="Admin" version="1.0.0"><![CDATA[Su último mensaje fue hace {1} días o más (pero tiene mensajes anteriores a esa fecha)]]></phrase>
+			<phrase name="last_visit_x_days_criteria" date="1283339059" username="Admin" version="1.0.0"><![CDATA[Su última visita fue hace {1} días o más]]></phrase>
+			<phrase name="left" date="1283153179" username="Admin" version="1.0.0"><![CDATA[Izquierda]]></phrase>
+			<phrase name="location" date="1283146499" username="Admin" version="1.0.0"><![CDATA[Location]]></phrase>
+			<phrase name="right" date="1283153193" username="Admin" version="1.0.0"><![CDATA[Derecha]]></phrase>
+			<phrase name="save_active_status" date="1283146557" username="Admin" version="1.0.0"><![CDATA[Save Active Status]]></phrase>
+			<phrase name="style_is_x_criteria" date="1283308246" username="Admin" version="1.0.0"><![CDATA[Usa este estilo: {1}]]></phrase>
+			<phrase name="time_between_criteria" date="1283343620" username="Admin" version="1.0.0"><![CDATA[La hora está entre {1} y {2} {3} (Use el formato hh:mm 24 horas)]]></phrase>
+			<phrase name="user_timezone" date="1283341207" username="Admin" version="1.0.0"><![CDATA[Zona horaria del usuario]]></phrase>
+			<phrase name="utc_universal_timezone" date="1283341225" username="Admin" version="1.0.0"><![CDATA[Zona horaria universal (UTC)]]></phrase>
+			<phrase name="wrapper" date="1283153305" username="Admin" version="1.0.0"><![CDATA[Envoltorio]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_ad_autotemplate_desc" date="1283401146" username="Admin" version="1.0.0"><![CDATA[Insertar la publicidad automáticamente en las plantillas.<br />Si deshabilita esta opción, debe editar manualmente las plantillas para insertar la publicidad en el lugar adecuado.<br /><br /><strong>NOTA:</strong> Require Javascript para funcionar adecuadamente.]]></phrase>
+			<phrase name="setting_fdw_ad_autotemplate_title" date="1283401146" username="Admin" version="1.0.0"><![CDATA[Plantillas]]></phrase>
+			<phrase name="setting_fdw_ad_enable_desc" date="1283392038" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar publicidad]]></phrase>
+			<phrase name="setting_fdw_ad_enable_title" date="1283392038" username="Admin" version="1.0.0"><![CDATA[Activar]]></phrase>
+			<phrase name="settinggroup_fdw_ad_options" date="1283391902" username="Admin" version="1.0.0"><![CDATA[Publicidad]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_ad_options" displayorder="400">
+			<setting varname="fdw_ad_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_ad_autotemplate" displayorder="20">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

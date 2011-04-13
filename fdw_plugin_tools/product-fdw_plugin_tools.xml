@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_plugin_tools" active="1">
+	<title>FDW Plugin Tools</title>
+	<description>Utilidades para plugins</description>
+	<version>1.0.3</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Plugin: Aditional Optioncodes</title>
+			<hookname>admin_options_print</hookname>
+			<phpcode><![CDATA[if (preg_match('#^fdwforums:?(\d+)$#s', $setting['optioncode'], $matches))
+{
+	$forums = construct_forum_chooser_options(true);
+	$size = intval($matches[1]);
+	print_select_row($description, $name . '[]', $forums, unserialize($setting['value']), false, $size, true);
+	$handled = true;
+}
+
+if (preg_match('#^fdwstyles:?(\d+)$#s', $setting['optioncode'], $matches))
+{
+	require_once(DIR . '/includes/adminfunctions_template.php');
+	cache_styles();
+	$style_options = array();
+
+	$size = intval($matches[1]);
+
+	foreach($GLOBALS['stylecache'] AS $style)
+	{
+		$style_options["$style[styleid]"] = construct_depth_mark($style['depth'], '--') . ' ' . $style['title'];
+	}
+	
+	print_select_row($description, $name . '[]', $style_options, unserialize($setting['value']), false, $size, true);
+	$handled = true;
+}
+
+if (preg_match('#^fdwselect:(\d+)(\r\n|\n|\r)(.*)$#siU', $setting['optioncode'], $matches))
+{
+	print_select_row($description, $name . '[]', fetch_piped_options(trim($matches[3])), unserialize($setting['value']), false, intval($matches[1]), true);
+	$handled = true;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Plugin: Process Optioncodes</title>
+			<hookname>admin_options_processing</hookname>
+			<phpcode><![CDATA[if (preg_match('#^fdw(forums|styles|select):\d+#', $oldsetting['optioncode'], $matches))
+{
+	if (!is_array($settings["$oldsetting[varname]"]))
+	{
+		 $settings["$oldsetting[varname]"] = array();
+	}
+	if ($matches[1] != 'select')
+	{
+		$settings["$oldsetting[varname]"] = array_map('intval', $settings["$oldsetting[varname]"]);
+	}
+	$settings["$oldsetting[varname]"] = serialize($settings["$oldsetting[varname]"]);
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="4">
+			<title>FDW Plugin: Replace templates (Cache)</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (count($replacetemplates))
+{
+	foreach($replacetemplates as $originaltemplate => $newtemplate)
+	{
+		$globaltemplates[array_search($originaltemplate, $globaltemplates)] = $newtemplate;
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Plugin: Replace templates</title>
+			<hookname>global_start</hookname>
+			<phpcode><![CDATA[if (count($replacetemplates))
+{
+	foreach($replacetemplates as $originaltemplate => $newtemplate)
+	{
+		$vbulletin->templatecache[$originaltemplate] =& $vbulletin->templatecache[$newtemplate];
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Plugin: Define $replacetemplates</title>
+			<hookname>init_startup</hookname>
+			<phpcode>$replacetemplates = array();</phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_plugin_static_desc" date="1291406564" username="Admin" version="1.0.0"><![CDATA[Servidor de contenido estático]]></phrase>
+			<phrase name="setting_fdw_plugin_static_title" date="1291406564" username="Admin" version="1.0.0"><![CDATA[Contenido estático]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="address" displayorder="20">
+			<setting varname="fdw_plugin_static" displayorder="120">
+				<datatype>free</datatype>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

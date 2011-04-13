@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_rank" active="1">
+	<title>Reddit algorithm</title>
+	<description>Algoritmo de reddit para ordenar temas</description>
+	<version>1.1.1</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.2" maxversion="" />
+		<dependency dependencytype="product" parentproductid="fdw_vote" minversion="1.0.1" maxversion="" />
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "thread ADD fdwrank DOUBLE NOT NULL DEFAULT '0', ADD KEY (fdwrank)");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "thread DROP KEY fdwrank, DROP fdwrank");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="tag_sortrank" templatetype="template" date="1300324499" username="Admin" version="1.1.1"><![CDATA[<div class="tborder" style="width: 500px; margin: 0pt auto;">
+	<div style="padding: 10px" class="alt2">
+		<phrase 1="$tag[tagtext]" 2="$tag[sorturl]">$vbphrase[tag_sort_by_rank]</phrase>
+	</div>
+</div>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: Cache template</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_rank_enable'] AND in_array(THIS_SCRIPT, unserialize($vbulletin->options['fdw_rank_page'])))
+{
+	if (!$vbulletin->options['fdw_rank_tags'] OR !is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_rank_default'])))
+	{
+		$globaltemplates[] = 'tag_sortrank';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: ForumDisplay default sort</title>
+			<hookname>forumdisplay_announcement_query</hookname>
+			<phpcode><![CDATA[// NOTE: Not related to announcements
+if (
+	$vbulletin->options['fdw_rank_enable'] AND in_array(THIS_SCRIPT, unserialize($vbulletin->options['fdw_rank_page']))
+	AND is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_rank_default']))
+	AND empty($vbulletin->GPC['sortfield']) AND in_array($foruminfo['forumid'], unserialize($vbulletin->options['fdw_rank_forums']))
+)
+{
+	$sortfield = 'rank';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: ForumDisplay data query</title>
+			<hookname>forumdisplay_query</hookname>
+			<phpcode><![CDATA[if ($sortfield == 'rank')
+{
+	$hook_query_fields .= ",fdwrank";
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: ForumDisplay threadid query</title>
+			<hookname>forumdisplay_query_threadid</hookname>
+			<phpcode><![CDATA[if ($sortfield == 'rank')
+{
+	$hook_query_fields .= ",fdwrank";
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: ForumDisplay sort field</title>
+			<hookname>forumdisplay_sort</hookname>
+			<phpcode><![CDATA[if ($sortfield == 'rank' AND $vbulletin->options['fdw_rank_enable'] AND in_array(THIS_SCRIPT, unserialize($vbulletin->options['fdw_rank_page'])))
+{
+	$sqlsortfield = 'fdwrank';
+	$sqlsortorder = 'DESC';
+	$vbulletin->GPC['sortorder'] = 'desc';
+	$order = array('desc' => 'selected="selected"');
+	
+	$handled = true;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: Tags page (pagenav links)</title>
+			<hookname>pagenav_page</hookname>
+			<phpcode><![CDATA[if ($curpage == 1 AND THIS_SCRIPT == 'tags' AND is_array($GLOBALS['rankqueryhack']) AND count($GLOBALS['rankqueryhack']))
+{
+	$address2 .= '&amp;sort=rank';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Rank: Sort link</title>
+			<hookname>tags_list_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_rank_enable'] AND in_array(THIS_SCRIPT, unserialize($vbulletin->options['fdw_rank_page'])))
+{
+	if (is_array($rankqueryhack) AND !count($rankqueryhack) AND !$vbulletin->GPC['sortfield'])
+	{
+		$tag['sorturl'] = 'tag=' . urlencode(unhtmlspecialchars($tag['tagtext'])) . '&amp;sort=rank';
+		$tag['sorturl'] .= ($foruminfo['forumid'] ? "&amp;f=$foruminfo[forumid]" : "");
+		eval('$tag[\'sortlink\'] = "' . fetch_template('tag_sortrank') . '";');
+		if ($vbulletin->options['fdw_rank_sortlink'])
+		{
+			$navbar .= $tag['sortlink'];
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="1">
+			<title>FDW Rank: Tags page (normalize fields)</title>
+			<hookname>tags_list_query_data</hookname>
+			<phpcode>if (is_array($rankqueryhack) AND count($rankqueryhack))
+{
+	list($tachy_columns, $tachyjoin) = $rankqueryhack;
+}</phpcode>
+		</plugin>
+		<plugin active="1" executionorder="15">
+			<title>FDW Rank: Tags page</title>
+			<hookname>tags_list_query_limit</hookname>
+			<phpcode><![CDATA[$rankqueryhack = array();
+if ($vbulletin->options['fdw_rank_enable'] AND in_array(THIS_SCRIPT, unserialize($vbulletin->options['fdw_rank_page'])))
+{
+	$sortfield = $vbulletin->input->clean_gpc('r', 'sortfield', TYPE_STR);
+	if ($sortfield == 'rank' OR ($sortfield != 'lastpost' AND $vbulletin->options['fdw_rank_tags'] AND is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_rank_default']))))
+	{
+		$rankqueryhack = array($tachy_columns, $tachyjoin);
+		$tachyjoin = '';
+		$tachy_columns = 'thread.fdwrank AS lastpost';
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Scheduled Tasks" fieldname="cron">
+			<phrase name="task_fdwrank_desc" date="1300149169" username="Admin" version="1.0.0"><![CDATA[Actualizar relevancia de temas usando el algoritmo de reddit]]></phrase>
+			<phrase name="task_fdwrank_log" date="1300149169" username="Admin" version="1.0.0"><![CDATA[Temas actualizados: {1}]]></phrase>
+			<phrase name="task_fdwrank_title" date="1300149169" username="Admin" version="1.0.0"><![CDATA[Ranking threads]]></phrase>
+		</phrasetype>
+		<phrasetype name="Searching" fieldname="search">
+			<phrase name="tag_sort_by_rank" date="1300325544" username="Admin" version="1.1.1"><![CDATA[Ver <a href="tags.php?{2}">temas populares</a> sobre {1}]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_rank_date_desc" date="1300147374" username="Admin" version="1.0.0"><![CDATA[Timestamp de inicio para cálculo de antigüedad de tema]]></phrase>
+			<phrase name="setting_fdw_rank_date_title" date="1300147374" username="Admin" version="1.0.0"><![CDATA[Timestamp de inicio]]></phrase>
+			<phrase name="setting_fdw_rank_default_desc" date="1300255615" username="Admin" version="1.1.0"><![CDATA[Establecer como método de ordenamiento por defecto para los grupos de usuarios especificados]]></phrase>
+			<phrase name="setting_fdw_rank_default_title" date="1300255615" username="Admin" version="1.1.0"><![CDATA[Método por defecto: Usergroups]]></phrase>
+			<phrase name="setting_fdw_rank_enable_desc" date="1300147295" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar ordenamiento de temas usando el algoritmo de Reddit]]></phrase>
+			<phrase name="setting_fdw_rank_enable_title" date="1300147295" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="setting_fdw_rank_forums_desc" date="1300255686" username="Admin" version="1.1.0"><![CDATA[Foros donde se utilizará como método de ordenamiento por defecto]]></phrase>
+			<phrase name="setting_fdw_rank_forums_title" date="1300255686" username="Admin" version="1.1.0"><![CDATA[Método por defecto: Foros]]></phrase>
+			<phrase name="setting_fdw_rank_page_desc" date="1300147772" username="Admin" version="1.0.0"><![CDATA[Páginas donde se podrá aplicar el método de ordenamiento]]></phrase>
+			<phrase name="setting_fdw_rank_page_title" date="1300147772" username="Admin" version="1.0.0"><![CDATA[Páginas]]></phrase>
+			<phrase name="setting_fdw_rank_sortlink_desc" date="1300323880" username="Admin" version="1.1.1"><![CDATA[Mostrar enlace de ordenamiento para quienes no lo tengan como método de ordenamiento por defecto<br /><strong>Nota: </strong>Sólo se aplica a /tags.php]]></phrase>
+			<phrase name="setting_fdw_rank_sortlink_title" date="1300323880" username="Admin" version="1.1.1"><![CDATA[Enlace de ordenamiento]]></phrase>
+			<phrase name="setting_fdw_rank_tags_desc" date="1300256053" username="Admin" version="1.1.0"><![CDATA[Establecer como método por defecto en /tags.php]]></phrase>
+			<phrase name="setting_fdw_rank_tags_title" date="1300256053" username="Admin" version="1.1.0"><![CDATA[Método por defecto: /tags.php]]></phrase>
+			<phrase name="settinggroup_fdw_rank" date="1300147250" username="Admin" version="1.0.0"><![CDATA[Ranking]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_rank" displayorder="610">
+			<setting varname="fdw_rank_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_rank_date" displayorder="20">
+				<datatype>posint</datatype>
+				<defaultvalue>1262311200</defaultvalue>
+			</setting>
+			<setting varname="fdw_rank_page" displayorder="30">
+				<datatype>free</datatype>
+				<optioncode>fdwselect:3
+-|-
+tags|Tags
+forumdisplay|ForumDisplay</optioncode>
+				<defaultvalue><![CDATA[a:1:{i:0;s:4:"tags";}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_rank_default" displayorder="40">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_rank_forums" displayorder="50">
+				<datatype>free</datatype>
+				<optioncode>fdwforums:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_rank_tags" displayorder="60">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_rank_sortlink" displayorder="70">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+		<cron varname="fdwrank" active="1" loglevel="1">
+			<filename>./includes/cron/fdwrank.php</filename>
+			<scheduling weekday="-1" day="-1" hour="-1" minute="35" />
+		</cron>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

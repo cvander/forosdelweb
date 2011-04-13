@@ -1,0 +1,1714 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_tag" active="1">
+	<title>Tags</title>
+	<description>Opciones adicionales para etiquetas</description>
+	<version>2.1.3</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.1" maxversion="" />
+	</dependencies>
+	<codes>
+		<code version="1.6.8">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwtagplain (
+		tagid INT UNSIGNED NOT NULL,
+		tagtext VARCHAR(100),
+		letter VARCHAR(1),
+		PRIMARY KEY(tagid)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwtagplain");]]></uninstallcode>
+		</code>
+		<code version="2.0.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwtag (
+		fdwtagid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		title VARCHAR(250) NOT NULL,
+		type ENUM ('popular', 'tag', 'field') NOT NULL,
+		recomendation VARCHAR(250) NOT NULL,
+		boxtitle VARCHAR(250) NOT NULL,
+		groupids VARCHAR(250) NOT NULL,
+		forumid INT UNSIGNED NOT NULL,
+		master INT UNSIGNED NOT NULL,
+		sort ENUM ('dateline', 'lastpost', 'fdwrank') NOT NULL,
+		unreaded TINYINT NOT NULL,
+		maxthreads TINYINT NOT NULL,
+		active TINYINT NOT NULL,
+		PRIMARY KEY (fdwtagid)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwtag");]]></uninstallcode>
+		</code>
+		<code version="2.1.0">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "fdwtag ADD days TINYINT NOT NULL DEFAULT '0'");]]></installcode>
+			<uninstallcode />
+		</code>
+	</codes>
+	<templates>
+		<template name="forumdisplay_recomended" templatetype="template" date="1300266553" username="Admin" version="2.0.1"><![CDATA[<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" style="border-bottom-width:0px">
+<tr>
+	<td class="tcat" width="100%">$forumrecs[boxtitle]</td>
+</tr>
+</table>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+<tbody>
+<tr>
+	<if condition="$show['threadicons']">
+		<td class="thead" colspan="2">&nbsp;</td>
+	<else />
+		<td class="thead">&nbsp;</td>
+	</if>
+	<td class="thead" width="100%">
+		<if condition="$show['threadratings']"><span style="float:$stylevar[right]">$vbphrase[rating]</span></if>
+		$vbphrase[thread] / $vbphrase[thread_starter]
+	</td>
+	<td class="thead" width="150" align="center" nowrap="nowrap"><span style="white-space:nowrap">$vbphrase[last_post]</span></td>
+	<td class="thead" align="center" nowrap="nowrap"><span style="white-space:nowrap">$vbphrase[replies]</span></td>
+	<td class="thead" align="center" nowrap="nowrap"><span style="white-space:nowrap">$vbphrase[views]</span></td>
+</tr>
+</tbody>
+
+<!-- show threads -->
+<tbody>
+$recomendedbit
+</tbody>
+<!-- end show threads -->
+</table>
+<br />]]></template>
+		<template name="tag_filter_dokill" templatetype="template" date="1299812004" username="Admin" version="1.7.0"><![CDATA[<form action="misc.php?do=tagskilldo" method="post">
+	<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+	<input type="hidden" name="tagid" value="$taginfo[tagid]" />
+	<input type="hidden" name="do" value="tagskilldo" />
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+	$vbphrase[delete_tag]:
+	<ul>
+		<li><phrase 1="$taginfo[tagid]" 2="$taginfo[tagtext]">$vbphrase[delete_x_tag]</phrase></li>
+		<if condition="$vboptions['fdw_tag_filter_locktag']"><li>$vbphrase[lock_tag]</li></if>
+	</ul>
+	<button type="submit" style="display:block">$vbphrase[delete_tag_submit]</button>
+</form>]]></template>
+		<template name="tag_filter_kill" templatetype="template" date="1299812203" username="Admin" version="1.7.0"><![CDATA[$stylevar[htmldoctype]
+<html xmlns="http://www.w3.org/1999/xhtml" dir="$stylevar[textdirection]" lang="$stylevar[languagecode]">
+<head>
+$headinclude
+<title>$vboptions[bbtitle] - $vbphrase[delete_tag]</title>
+</head>
+<body>
+$header
+$navbar
+
+<form action="misc.php" method="get">
+<input type="hidden" name="do" value="tagskill">
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" id="threadslist">
+<tr>
+	<td class="tcat">$vbphrase[search_tag]</td>
+</tr>
+<tr>
+	<td class="alt1" align="center"><div style="width: $stylevar[formwidth]" align="$stylevar[left]">
+		<span id="tag_wrapper"><input type="text" id="tag_input" name="tag" size="25" style="width: 80%" class="bginput" /></span>
+		<input type="submit" class="button" value="$vbphrase[search]" />
+	</div></td>
+</tr>
+</table>
+</form>
+
+<if condition="$show['popups']">
+	<div id="tag_wrapper_menu" class="vbmenu_popup" style="display:none"></div>
+	<script type="text/javascript" src="clientscript/vbulletin_ajax_tagsugg.js?v=$vboptions[simpleversion]"></script>
+	<script type="text/javascript">
+	<!--
+	vbmenu_register('tag_wrapper', true);
+	tag_comp = new vB_AJAX_TagSuggest('tag_comp', 'tag_input', 'tag_wrapper');
+	//-->
+	</script>
+</if>
+
+$footer
+
+</body>
+</html>]]></template>
+		<template name="tag_filter_letter" templatetype="template" date="1299754719" username="Admin" version="1.6.8"><![CDATA[<if condition="$show['selectedletter']">
+<td class="alt1" width="3%">[<strong>$currentletter</strong>]</td>
+<else />
+<td class="alt2" width="3%"><a href="misc.php?$session[sessionurl]do=tags&ltr=$linkletter">$currentletter</a></td>
+</if>]]></template>
+		<template name="tag_filter_page" templatetype="template" date="1299764113" username="Admin" version="1.6.9"><![CDATA[$stylevar[htmldoctype]
+<html xmlns="http://www.w3.org/1999/xhtml" dir="$stylevar[textdirection]" lang="$stylevar[languagecode]">
+<head>
+$headinclude
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_tagtool.js"></script>
+<title>$vboptions[bbtitle] - $vbphrase[filtertag]</title>
+</head>
+<body>
+$header
+$navbar
+
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+<tr align="center">
+	$letterbits
+</tr>
+</table>
+<br />
+
+<if condition="$show['grouplist']">
+<form action="misc.php" method="get">
+<input type="hidden" name="do" value="tags">
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" id="threadslist">
+<tr>
+	<td class="tcat">$vbphrase[similar_tags]</td>
+</tr>
+<tr>
+	<td class="alt1" align="center"><div style="width: $stylevar[formwidth]" align="$stylevar[left]">
+		<select id="taggroups" name="tagid" style="width:60%">$groupbits</select>
+		<input type="submit" class="button" value="$vbphrase[go]" />
+	</div></td>
+</tr>
+</table>
+</form>
+<br />
+</if>
+
+<if condition="$show['resultbox']">
+<if condition="$show['grouplist']">
+<form action="misc.php?do=tagsmerge" method="post">
+	<input type="hidden" name="do" value="tagsmerge">
+	<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+	<input type="hidden" name="ltr" value="{$vbulletin->GPC['ltr']}" />
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+</if>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" id="threadslist">
+<tr>
+	<td class="tcat">$vbphrase[merge_tags]</td>
+</tr>
+<tr>
+	<td class="alt1" align="center"><div style="width: $stylevar[formwidth]" align="$stylevar[left]">
+		<if condition="$show['grouplist']">
+		<select multiple="multiple" id="taglist" name="tag[]" style="width: 60%">$tagbits</select>
+		<br /><br />
+		<input type="text" name="tagtext" id="tagtext_field" />
+		<input type="submit" class="button" value="$vbphrase[merge]" />
+		<script type="text/javascript">tagtool_start();</script>
+		<else />
+		$vbphrase[no_similar_tags]
+		</if>
+	</div></td>
+</tr>
+</table>
+<if condition="$show['grouplist']">
+</form>
+</if>
+<br />
+</if>
+
+<form action="misc.php" method="get">
+<input type="hidden" name="do" value="tags">
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" id="threadslist">
+<tr>
+	<td class="tcat">$vbphrase[filter_by_tag]</td>
+</tr>
+<tr>
+	<td class="alt1" align="center"><div style="width: $stylevar[formwidth]" align="$stylevar[left]">
+		<span id="tag_wrapper"><input type="text" id="tag_input" name="tag" size="25" style="width: 80%" class="bginput" /></span>
+		<input type="submit" class="button" value="$vbphrase[search]" />
+	</div></td>
+</tr>
+</table>
+</form>
+
+<if condition="$show['popups']">
+	<div id="tag_wrapper_menu" class="vbmenu_popup" style="display:none"></div>
+	<script type="text/javascript" src="clientscript/vbulletin_ajax_tagsugg.js?v=$vboptions[simpleversion]"></script>
+	<script type="text/javascript">
+	<!--
+	vbmenu_register('tag_wrapper', true);
+	tag_comp = new vB_AJAX_TagSuggest('tag_comp', 'tag_input', 'tag_wrapper');
+	//-->
+	</script>
+</if>
+
+$footer
+
+</body>
+</html>]]></template>
+		<template name="tag_forum" templatetype="template" date="1299161018" username="Admin" version="1.6.0"><![CDATA[<div class="tborder" style="width: 500px; margin: 0pt auto;">
+	<div style="padding: 10px" class="alt2">
+		<phrase 1="$foruminfo[title_clean]" 2="$foruminfo[forumid]" 3="$tag[tagtext]" 4="$tag[tagtext_url]">$vbphrase[tag_search_at_x]</phrase>
+	</div>
+</div>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: AdminCP Tool</title>
+			<hookname>admin_maintenance</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'chooser' AND $vbulletin->options['threadtagging'])
+{
+	print_form_header('misc', 'fdwautotag');
+	print_table_header($vbphrase['fdw_autotag']);
+	print_description_row($vbphrase['function_fdw_autotag']);
+	print_time_row($vbphrase['fdw_autotag_start'], 'startdate', strtotime('-1 year', TIMENOW), false);
+	print_input_row($vbphrase['number_of_threads_to_process_per_cycle'], 'perpage', 500);
+	print_submit_row($vbphrase['fdw_autotag']);
+}
+
+// ###################### Start auto-tagging #######################
+if ($_REQUEST['do'] == 'fdwautotag' AND $vbulletin->options['threadtagging'])
+{
+	$vbulletin->input->clean_gpc('r', 'startdate', TYPE_UNIXTIME);
+	
+	if (empty($vbulletin->GPC['perpage']))
+	{
+		$vbulletin->GPC['perpage'] = 500;
+	}
+	
+	echo '<p>' . $vbphrase['fdw_tagging_threads'] . '</p>';
+	
+	$threads = $db->query_read("
+		SELECT threadid, title, forumid
+		FROM " . TABLE_PREFIX . "thread
+		WHERE threadid >= " . $vbulletin->GPC['startat'] . "
+			AND dateline >= " . $vbulletin->GPC['startdate'] . "
+			AND (taglist = '' OR ISNULL(taglist))
+		ORDER BY threadid
+		LIMIT " . $vbulletin->GPC['perpage']
+	);
+
+	$finishat = $vbulletin->GPC['startat'];
+
+	require_once(DIR . '/includes/functions_newpost.php');
+	
+	$true_permissions = $vbulletin->userinfo['permissions']['genericpermissions'];
+	if ($vbulletin->options['fdw_tag_existing'])
+	{
+		$vbulletin->userinfo['permissions']['genericpermissions'] &= ~$vbulletin->bf_ugp_genericpermissions['cancreatetag'];
+	}
+	
+	while ($thread = $db->fetch_array($threads))
+	{
+		$title_words = explode(' ', $thread['title']);
+		$possible_tags = array();
+		foreach ($title_words AS $possible_tag)
+		{
+			if ($vbulletin->options['fdw_tag_regexp'])
+			{
+				$possible_tag = preg_replace($vbulletin->options['fdw_tag_regexp'], $vbulletin->options['fdw_tag_replace'], $possible_tag);
+			}
+			$possible_tag = trim($possible_tag, '-');
+			if (!empty($possible_tag))
+			{
+				$possible_tags[] = $possible_tag;
+			}
+		}
+		
+		if ($vbulletin->options['fdw_tag_forum'])
+		{
+			// Clean forum title
+			$foruminfo =& $vbulletin->forumcache["$thread[forumid]"];
+			$possible_tag = ($vbulletin->options['tagforcelower'] ? vbstrtolower($foruminfo['title']) : $foruminfo['title']);
+			$possible_tag = implode($vbulletin->options['fdw_tag_replace'], split_tag_list($possible_tag));
+			
+			array_unshift($possible_tags, $possible_tag);
+
+			$vbulletin->db->query("
+				INSERT IGNORE INTO " . TABLE_PREFIX . "tag
+					(tagtext, dateline)
+				VALUES
+					('" . $vbulletin->db->escape_string($possible_tag) . "', " . TIMENOW . ")
+			");
+		}
+		
+		$taglist = fetch_valid_tags($thread, $possible_tags, $error, true, false);
+		if (count($taglist))
+		{
+			sort($taglist);
+			
+			// As in insert_tags_thread() function (functions_newpost.php)
+			
+			$taglist_db = array();
+			$taglist_insert = array();
+			foreach ($taglist AS $tag)
+			{
+				$tag = $vbulletin->db->escape_string($tag);
+
+				$taglist_db[] = $tag;
+				$taglist_insert[] = "('$tag', " . TIMENOW . ")";
+			}
+
+			// create new tags
+			$vbulletin->db->query_write("
+				INSERT IGNORE INTO " . TABLE_PREFIX . "tag
+					(tagtext, dateline)
+				VALUES
+					" . implode(',', $taglist_insert)
+			);
+
+			// now associate with thread
+			$tagthread = array();
+			$tagid_sql = $vbulletin->db->query_read("
+				SELECT tagid
+				FROM " . TABLE_PREFIX . "tag
+				WHERE tagtext IN ('" . implode("', '", $taglist_db) . "')
+			");
+			while ($tag = $vbulletin->db->fetch_array($tagid_sql))
+			{
+				$tagthread[] = "($thread[threadid], $tag[tagid], " . $vbulletin->userinfo['userid'] . ", " . TIMENOW . ")";
+			}
+
+			if ($tagthread)
+			{
+				// this should always happen
+				$vbulletin->db->query_write("
+					INSERT IGNORE INTO " . TABLE_PREFIX . "tagthread
+						(threadid, tagid, userid, dateline)
+					VALUES
+						" . implode(',', $tagthread)
+				);
+			}
+			
+			$vbulletin->db->query_write("
+				UPDATE " . TABLE_PREFIX . "thread
+				SET taglist = '" . implode(', ', $taglist_db) . "'
+				WHERE threadid = $thread[threadid]
+			");
+		}
+		
+		echo construct_phrase($vbphrase['processing_x'], $thread['threadid'])."<br />\n";
+		vbflush();
+
+		$finishat = ($thread['threadid'] > $finishat ? $thread['threadid'] : $finishat);
+	}
+	$vbulletin->userinfo['permissions']['genericpermissions'] = $true_permissions;
+
+	$finishat++;
+
+	if ($checkmore = $db->query_first("SELECT threadid FROM " . TABLE_PREFIX . "thread WHERE threadid >= $finishat AND dateline >= {$vbulletin->GPC['startdate']} AND (taglist = '' OR ISNULL(taglist)) LIMIT 1"))
+	{
+		print_cp_redirect("misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=fdwautotag&startat=$finishat&pp=" . $vbulletin->GPC['perpage']);
+		echo "<p><a href=\"misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=fdwautotag&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . "\">" . $vbphrase['click_here_to_continue_processing'] . "</a></p>";
+	}
+	else
+	{
+		define('CP_REDIRECT', 'misc.php');
+		print_stop_message('fdw_autotag_successfully');
+	}
+
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="4">
+			<title>FDW Tags: Tags/Subforums</title>
+			<hookname>cache_ordered_forums</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'forumdisplay' AND $vbulletin->options['threadtagging'] AND $vbulletin->options['fdw_tag_popular'] AND is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_tag_popular_groups'])))
+{
+	$forumid = $GLOBALS['foruminfo']['forumid'];
+	if (in_array($forumid, unserialize($vbulletin->options['fdw_tag_popular_forum'])) AND in_array(STYLEID, unserialize($vbulletin->options['fdw_tag_popular_style'])))
+	{
+		if (!is_array($vbulletin->fdwtags))
+		{
+			$vbulletin->fdwtags = array();
+		}
+		if (!is_array($vbulletin->fdwtags["$forumid"]) OR $vbulletin->fdwtags["$forumid"]['cachetime'] < (TIMENOW - (60 * 60 * $vbulletin->options['fdw_tag_popular_cache'])))
+		{
+			$hook_query_where = '';
+			if ($vbulletin->options['fdw_tag_popular_notself'])
+			{
+				require_once(DIR . '/includes/functions_newpost.php');
+				$possible_tag = ($vbulletin->options['tagforcelower'] ? vbstrtolower($GLOBALS['foruminfo']['title']) : $GLOBALS['foruminfo']['title']);
+				$possible_tag = implode($vbulletin->options['fdw_tag_replace'], split_tag_list($possible_tag));
+				$hook_query_where = "AND tag.tagtext != '" . $vbulletin->db->escape_string($possible_tag) . "'";
+			}
+			
+			$popular_tags = $vbulletin->db->query_read("
+				SELECT tag.tagid, tag.tagtext, COUNT(thread.threadid) AS relevance
+				FROM " . TABLE_PREFIX . "tagthread AS tagthread
+				JOIN " . TABLE_PREFIX . "thread AS thread USING (threadid)
+				JOIN " . TABLE_PREFIX . "tag AS tag USING (tagid)
+				WHERE thread.forumid = $forumid
+					AND thread.visible = 1
+					AND thread.open <> 10
+					AND tagthread.dateline > " . (TIMENOW - (60 * 60 * 24 * $vbulletin->options['fdw_tag_popular_days'])) . "
+				$hook_query_where
+				GROUP BY tagthread.tagid
+				ORDER BY relevance DESC
+				LIMIT {$vbulletin->options['fdw_tag_popular']}
+			");
+			
+			$tags = array();
+			while ($tag = $vbulletin->db->fetch_array($popular_tags))
+			{
+				$tag['tagtext_url'] = urlencode(unhtmlspecialchars($tag['tagtext']));
+				$tags["$tag[tagid]"] = $tag;
+			}
+			
+			$vbulletin->fdwtags["$forumid"] = array(
+				'tags' => $tags,
+				'cachetime' => TIMENOW
+			);
+			
+			build_datastore('fdwtags', serialize($vbulletin->fdwtags), 1);
+		}
+		
+		$tags =& $vbulletin->fdwtags["$forumid"]['tags'];
+		foreach ($tags AS $tag)
+		{
+			// Create fake subforum
+			$vbulletin->forumcache["t$tag[tagid]f$forumid"] = array(
+				'forumid' => "t$tag[tagid]f$forumid",
+				'title' => $tag['tagtext'],
+				'title_clean' => $tag['tagtext'],
+				'displayorder' => 1,
+				'options' => $vbulletin->bf_misc_forumoptions['cancontainthreads'] | $vbulletin->bf_misc_forumoptions['active'],
+				'parentid' => $forumid,
+				'link' => str_replace(array('{tagtext}', '{forumid}'), array($tag['tagtext_url'], $forumid), $vbulletin->options['fdw_tag_popular_url']),
+				'is_tag' => true
+			);
+			$vbulletin->userinfo['forumpermissions']["t$tag[tagid]f$forumid"] |= $vbulletin->bf_ugp_forumpermissions['canview'];
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Cache templates</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'tags' AND $vbulletin->options['fdw_tag_forumsearch'])
+{
+	$globaltemplates[] = 'tag_forum';
+}
+
+if (THIS_SCRIPT == 'misc')
+{
+	if ($_REQUEST['do'] == 'tags')
+	{
+		$globaltemplates = array_merge($globaltemplates, array('optgroup', 'tag_filter_page', 'tag_filter_letter'));
+	}
+	else if ($_REQUEST['do'] == 'tagskill')
+	{
+		$globaltemplates = array_merge($globaltemplates, array('tag_filter_kill', 'tag_filter_dokill'));
+	}
+}
+
+if (THIS_SCRIPT == 'forumdisplay' AND $vbulletin->options['fdw_tag_rec_enable'])
+{
+	$globaltemplates[] = 'forumdisplay_recomended';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Tags/Subforums number</title>
+			<hookname>forumbit_display</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'forumdisplay' AND $vbulletin->options['fdw_tag_popular'] AND $depth == 1)
+{
+	if (!isset($show['number_subforums']))
+	{
+		$show['number_subforums'] = 0;
+	}
+	$show['number_subforums']++;
+	if ($forum['is_tag'] AND $show['number_subforums'] == $vbulletin->options['fdw_tag_popular'])
+	{
+		foreach ($vbulletin->iforumcache["$parentid"] AS $tagsubforumid)
+		{
+			if ($vbulletin->forumcache["$tagsubforumid"]['is_tag'])
+			{
+				$vbulletin->forumcache["$tagsubforumid"]['displayorder'] = null;
+			}
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="4">
+			<title>FDW Tags: Recomended threads</title>
+			<hookname>forumdisplay_complete</hookname>
+			<phpcode><![CDATA[$recomendedthreads = '';
+if (
+	$vbulletin->options['fdw_tag_rec_enable'] AND $show['threadslist']
+	AND is_array($vbulletin->fdwtaglist) AND $vbulletin->fdwtaglist["$foruminfo[forumid]"]
+	AND ($forumperms & $vbulletin->bf_ugp_forumpermissions['canviewothers'] AND $vbulletin->options['threadpreview'] > 0)
+)
+{
+	$threadmarked = null;
+	$applylist = $querylist = $tagslist = array();
+	$forumrecs = $vbulletin->fdwtaglist["$foruminfo[forumid]"];
+	foreach ($forumrecs['list'] AS $fdwrec)
+	{
+		$tagsearch = '';
+		if (!is_member_of($vbulletin->userinfo, $fdwrec['groupids']))
+		{
+			continue;
+		}
+		if ($fdwrec['master'] AND in_array($fdwrec['master'], $applylist))
+		{
+			continue;
+		}
+		switch ($fdwrec['type'])
+		{
+			case 'popular':
+				if (is_array($vbulletin->fdwtags["$foruminfo[forumid]"]) AND count($vbulletin->fdwtags["$foruminfo[forumid]"]['tags']))
+				{
+					$populartag = reset($vbulletin->fdwtags["$foruminfo[forumid]"]['tags']);
+					$tagsearch = $populartag['tagtext'];
+				}
+				break;
+			case 'tag':
+				$tagsearch = $fdwrec['recomendation'];
+				break;
+			case 'field':
+				if (!empty($vbulletin->userinfo["$fdwrec[recomendation]"]))
+				{
+					require_once(DIR . '/includes/functions_newpost.php');
+					$tagsearch = vbstrtolower(implode($vbulletin->options['fdw_tag_replace'], split_tag_list($vbulletin->userinfo["$fdwrec[recomendation]"])));
+				}
+				break;
+		}
+		if (empty($tagsearch))
+		{
+			continue;
+		}
+		$tagslist[] = "'" . $vbulletin->db->escape_string($tagsearch) . "'";
+		if ($fdwrec['maxthreads'])
+		{
+			$querylist[] = array(
+				'limit' => min($fdwrec['maxthreads'], $vbulletin->options['fdw_tag_rec_max']),
+				'tags' => array(array($tagsearch)),
+				'unreaded' => $fdwrec['unreaded']
+			);
+		}
+		else
+		{
+			$querytype = ($fdwrec['unreaded'] ? 'unreaded' : 'common');
+			if (!is_array($querylist["$querytype"]))
+			{
+				$querylist["$querytype"] = array('limit' => $vbulletin->options['fdw_tag_rec_max'], 'tags' => array(), 'unreaded' => $fdwrec['unreaded']);
+			}
+			$datecut = ($fdwrec['days'] ? TIMENOW - (60 * 60 * 24 * $fdwrec['days']) : 0);
+			$querylist["$querytype"]['tags']["$datecut"][] = $tagsearch;
+		}
+		$applylist[] = $fdwrec['fdwtagid'];
+		
+		if ($fdwrec['unreaded'] AND !$vbulletin->options['threadmarking'] AND !isset($threadsmarked))
+		{
+			// Cache cookie-based thread read marking
+			if (!isset($bb_cache_thread_lastview))
+			{
+				$cookie =& $vbulletin->input->clean_gpc('c', COOKIE_PREFIX . 'thread_lastview', TYPE_STR);
+				if (!empty($cookie))
+				{
+					$bb_cache_thread_lastview = @unserialize(convert_bbarray_cookie($cookie));
+				}
+			}
+			$threadsmarked = $threadsmarkeddate = '';
+			if (isset($bb_cache_thread_lastview) AND is_array($bb_cache_thread_lastview))
+			{
+				$threadsmarked = implode(',', array_map('intval', array_keys($bb_cache_thread_lastview)));
+				$threadsmarkeddate = implode(',', array_map('intval', array_values($bb_cache_thread_lastview)));
+			}
+		}
+	}
+	
+	if (count($querylist))
+	{
+		$tagsidlist = array();
+		$querytags = $vbulletin->db->query_read("SELECT tagid, tagtext FROM " . TABLE_PREFIX . "tag WHERE tagtext IN (" . implode(',', $tagslist) . ")");
+		while ($querytag = $vbulletin->db->fetch_array($querytags))
+		{
+			$tagsidlist["$querytag[tagid]"] = $querytag['tagtext'];
+		}
+		
+		$parsedquerylist = array();
+		$globalignore = ($Coventry ? "AND postuserid NOT IN ($Coventry) " : "");
+		$ignoredusers = ((is_array($ignore) AND count($ignore)) ? "AND postuserid NOT IN (" . implode(',', array_keys($ignore)) . ")" : ""); 
+		$ignoreself = ($vbulletin->userinfo['userid'] ? "AND thread.postuserid <> " . $vbulletin->userinfo['userid'] : "");
+		foreach ($querylist AS $singlequery)
+		{
+			$markingcondition = $markingjoin = $datecutcondition = '';
+			if ($singlequery['unreaded'])
+			{
+				$markingcondition = "AND thread.lastpost > $lastread";
+				if ($vbulletin->options['threadmarking'])
+				{
+					$markingcondition .= " AND thread.lastpost > IFNULL(threadread.readtime, 0)";
+					$markingjoin = "LEFT JOIN " . TABLE_PREFIX . "threadread AS threadread ON (threadread.threadid = thread.threadid AND threadread.userid = " . $vbulletin->userinfo['userid'] . ")";
+				}
+				else
+				{
+					if (!empty($threadsmarked))
+					{
+						$markingcondition .= " AND thread.lastpost > IFNULL(ELT(FIELD(thread.threadid, $threadsmarked), $threadsmarkeddate), 0)";
+					}
+				}
+			}
+			$matchedtags = $hook_query_where = array();
+			$dofilterdate = false;
+			foreach ($singlequery['tags'] AS $datecut => $singlequerytags)
+			{
+				$singlematched = array_keys(array_intersect($tagsidlist, $singlequerytags));
+				if (!count($singlematched))
+				{
+					continue;
+				}
+				$dofilterdate = (!$dofilterdate AND $datecut);
+				$datecondition = ($datecut ? " AND thread.lastpost > $datecut" : "");
+				$hook_query_where[] = "(tagthread.tagid IN (" . implode(',', $singlematched) . ")$datecondition)";
+				$matchedtags += $singlematched;
+			}
+			if ($dofilterdate)
+			{
+				$datecutcondition = "AND (" . implode(' OR ', $hook_query_where) . ")";
+			}
+			
+			if (count($matchedtags))
+			{
+				$parsedquery = "
+					SELECT DISTINCT thread.threadid, thread.$forumrecs[sort] AS sort
+					FROM " . TABLE_PREFIX . "thread AS thread
+					INNER JOIN " . TABLE_PREFIX . "tagthread AS tagthread ON
+						(tagthread.tagid IN (" . implode(',', $matchedtags) . ") AND tagthread.threadid = thread.threadid)
+					$markingjoin
+					WHERE
+						forumid = $foruminfo[forumid] AND thread.visible = 1 AND thread.open <> 10
+						$datecutcondition
+						$ignoreself
+						$ignoredusers
+						$globalignore
+						$markingcondition
+					ORDER BY $forumrecs[sort] DESC
+					LIMIT $singlequery[limit]
+				";
+				$parsedquerylist[] = (count($querylist) > 1 ? "($parsedquery)" : $parsedquery);
+			}
+		}
+		
+		$threadids = '';
+		if (count($parsedquerylist))
+		{
+			$threadids_query = $vbulletin->db->query_read_slave(implode(" UNION ", $parsedquerylist) . (count($querylist) > 1 ? " ORDER BY sort LIMIT {$vbulletin->options['fdw_tag_rec_max']}" : ""));
+			while ($threadid = $vbulletin->db->fetch_array($threadids_query))
+			{
+				$threadids .= ",$threadid[threadid]";
+			}
+		}
+		
+		if (!empty($threadids))
+		{
+			$votequery = $fdwvotequery = '';
+			if ($foruminfo['allowratings'])
+			{
+				$vbulletin->options['showvotes'] = intval($vbulletin->options['showvotes']);
+				$votequery = "
+					IF(votenum >= " . $vbulletin->options['showvotes'] . ", votenum, 0) AS votenum,
+					IF(votenum >= " . $vbulletin->options['showvotes'] . " AND votenum > 0, votetotal / votenum, 0) AS voteavg,
+				";
+			}
+			
+			if ($vbulletin->options['fdw_tag_rec_vote'] AND $foruminfo['votefdw'])
+			{
+				if ($vbulletin->options['fdw_vote_enable'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']))
+				{
+					$fdwvotequery = ($vbulletin->options['fdw_vote_canneg']) ? 'thread.votepos, thread.voteneg, thread.votepos - thread.voteneg AS fdwvote,' : 'thread.votepos, 0 AS voteneg, thread.votepos AS fdwvote,';
+				}
+			}
+			
+			$previewfield = "post.pagetext AS preview,";
+			$previewjoin = "LEFT JOIN " . TABLE_PREFIX . "post AS post ON(post.postid = thread.firstpostid)";
+			
+			$threads = $vbulletin->db->query_read_slave("
+				SELECT $fdwvotequery $votequery $previewfield
+					thread.threadid, thread.title AS threadtitle, thread.forumid, pollid, open, postusername, postuserid, thread.iconid AS threadiconid,
+					thread.lastpost, thread.lastposter, thread.lastpostid, thread.replycount, IF(thread.views<=thread.replycount, thread.replycount+1, thread.views) AS views,
+					thread.dateline, notes, thread.visible, sticky, votetotal, thread.attach,
+					thread.prefixid, thread.taglist, hiddencount, deletedcount
+					" . (($vbulletin->options['threadsubscribed']) ? ", NOT ISNULL(subscribethread.subscribethreadid) AS issubscribed" : "") . "
+					" . (($vbulletin->options['threadmarking']) ? ", threadread.readtime AS threadread" : "") . "
+				FROM " . TABLE_PREFIX . "thread AS thread
+					" . (($vbulletin->options['threadsubscribed']) ?  " LEFT JOIN " . TABLE_PREFIX . "subscribethread AS subscribethread ON(subscribethread.threadid = thread.threadid AND subscribethread.userid = " . $vbulletin->userinfo['userid'] . " AND canview = 1)" : "") . "
+					" . (($vbulletin->options['threadmarking']) ? " LEFT JOIN " . TABLE_PREFIX . "threadread AS threadread ON (threadread.threadid = thread.threadid AND threadread.userid = " . $vbulletin->userinfo['userid'] . ")" : "") . "
+					$previewjoin
+				WHERE thread.threadid IN (0$threadids)
+				ORDER BY lastpost DESC
+			");
+			
+			// Get Dot Threads
+			$dotthreads = fetch_dot_threads_array($threadids);
+			
+			$show['inlinemod_display'] = $show['inlinemod'];
+			$show['inlinemod'] = false;
+			
+			$recomendedbit = '';
+			while ($thread = $vbulletin->db->fetch_array($threads))
+			{
+				$thread = process_thread_array($thread, $lastread, $foruminfo['allowicons']);
+				$show['moderated'] = ($thread['hiddencount'] > 0 AND can_moderate($forumid, 'canmoderateposts')) ? true : false;
+				$show['deletedthread'] = ($thread['deletedcount'] > 0 AND $canseedelnotice) ? true : false;
+				$thread['realthreadid'] = "rec_$thread[threadid]";
+				eval('$recomendedbit .= "' . fetch_template('threadbit') . '";');
+			}
+			if (!empty($recomendedbit))
+			{
+				eval('$recomendedthreads = "' . fetch_template('forumdisplay_recomended') . '";');
+				if ($vbulletin->options['fdw_tag_rec_template'])
+				{
+					$navbar .= $recomendedthreads;
+				}
+			}
+			
+			$show['inlinemod'] = $show['inlinemod_display'];
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="10">
+			<title>FDW Tags: Tag redirection / Datastore</title>
+			<hookname>init_startup</hookname>
+			<phpcode><![CDATA[if (!isset($datastore_fetch))
+{
+	$datastore_fetch = array();
+}
+if (THIS_SCRIPT == 'forumdisplay' AND $vbulletin->options['threadtagging'])
+{
+	if ($vbulletin->options['fdw_tag_popular'])
+	{
+		$vbulletin->input->clean_array_gpc('r', array(
+			'forumid'	=> TYPE_STR,
+		));
+		
+		if (preg_match('/^t([0-9]+)f([0-9]+)$/', $vbulletin->GPC['forumid'], $match))
+		{
+			$redirection = array(
+				'tagid' => intval($match[1]),
+				'forumid' => intval($match[2])
+			);
+			if ($tag = $vbulletin->db->query_first("SELECT * FROM " . TABLE_PREFIX . "tag WHERE tagid = $redirection[tagid]"))
+			{
+				$tag['tagtext_url'] = urlencode(unhtmlspecialchars($tag['tagtext']));
+				exec_header_redirect(str_replace(array('{tagtext}', '{forumid}'), array($tag['tagtext_url'], $redirection['forumid']), $vbulletin->options['fdw_tag_popular_url']));
+			}
+		}
+		else
+		{
+			$datastore_fetch[] = "'fdwtags'";
+		}
+	}
+	if ($vbulletin->options['fdw_tag_rec_enable'])
+	{
+		$datastore_fetch[] = "'fdwtaglist'";
+	}
+}
+
+if (THIS_SCRIPT == 'misc' AND in_array($_REQUEST['do'], array('tags', 'tagskill')))
+{
+	$phrasegroups = array_merge($phrasegroups, array('fdwtagtool', 'threadmanage'));
+	$datastore_fetch[] = "'fdwtagcache'";
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Filter Tool</title>
+			<hookname>misc_start</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'tags' OR $_POST['do'] == 'tagsmerge' OR $_REQUEST['do'] == 'tagskill' OR $_POST['do'] == 'tagskilldo')
+{
+	function fdw_clean_tag($tagtext)
+	{
+		$tagtext = strtolower(unhtmlspecialchars($tagtext));
+		$tagtext = str_ireplace(
+			array(
+				'À', 'Á', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É',
+				'Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó', 'Ô',
+				'Õ', 'Ö', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'ÿ'
+			),
+			array(
+				'a', 'a', 'a', 'a', 'a', 'a', 'a', 'e', 'c', 'e', 'e',
+				'e', 'e', 'i', 'i', 'i', 'i', 'd', 'n', 'o', 'o', 'o',
+				'o', 'o', 'o', 'u', 'u', 'u', 'u', 'y', 'y'
+			),
+			$tagtext
+		);
+		return trim(preg_replace('/[^a-z0-9]+/', '-', $tagtext), '-');
+	}
+	
+	function implode_comma($pieces)
+	{
+		return implode(', ', $pieces);
+	}
+	
+	if (!$vbulletin->userinfo['userid'] OR !is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_tag_filter'])))
+	{
+		print_no_permission();
+	}
+	
+	$doaction = $_POST['do'];
+}
+
+if ($_REQUEST['do'] == 'tagskill')
+{
+	$tag = $vbulletin->input->clean_gpc('r', 'tag', TYPE_NOHTML);
+	
+	if ($vbulletin->GPC['tag'])
+	{
+		$taginfo = $vbulletin->db->query_first("
+			SELECT tagid, tagtext
+			FROM " . TABLE_PREFIX . "tag
+			WHERE tagtext = '" . $db->escape_string($vbulletin->GPC['tag']) . "'
+		");
+		
+		if (!$taginfo)
+		{
+			standard_error(fetch_error('invalidid', $vbphrase['tag'], $vbulletin->options['contactuslink']));
+		}
+		
+		eval('$html = "' . fetch_template('tag_filter_dokill') . '";');
+		eval(standard_error($html));
+	}
+	
+	// draw navbar
+	$navbits = array();
+	if ($taginfo)
+	{
+		$navbits['misc.php?' . $vbulletin->session->vars['sessionurl'] . 'do=tagskill'] = $vbphrase['delete_tag'];
+		$navbits[''] = $taginfo['tagtext'];
+	}
+	else
+	{
+		$navbits[''] = $vbphrase['delete_tag'];
+	}
+	$navbits = construct_navbits($navbits);
+	eval('$navbar = "' . fetch_template('navbar') . '";');
+	
+	eval('print_output("' . fetch_template('tag_filter_kill') . '");');
+}
+
+if ($_REQUEST['do'] == 'tags')
+{
+	$vbulletin->input->clean_array_gpc('r', array(
+		'tagid' => TYPE_UINT,
+		'tag' => TYPE_NOHTML,
+		'ltr' => TYPE_NOHTML
+	));
+	
+	$selectedletter = strtolower(chr(intval(ord($vbulletin->GPC['ltr']))));
+	
+	if ($vbulletin->GPC['tagid'])
+	{
+		if (!$taginfo = $vbulletin->db->query_first("SELECT tagid, tagtext FROM " . TABLE_PREFIX . "tag WHERE tagid = {$vbulletin->GPC['tagid']}"))
+		{
+			standard_error(fetch_error('invalidid', $vbphrase['tag'], $vbulletin->options['contactuslink']));
+		}
+	}
+	else if ($vbulletin->GPC['tag'])
+	{
+		$taginfo = $vbulletin->db->query_first("
+			SELECT tagid, tagtext
+			FROM " . TABLE_PREFIX . "tag
+			WHERE tagtext = '" . $db->escape_string($vbulletin->GPC['tag']) . "'
+		");
+		if (!$taginfo)
+		{
+			standard_error(fetch_error('invalidid', $vbphrase['tag'], $vbulletin->options['contactuslink']));
+		}
+	}
+	
+	$show['resultbox'] = false;
+	if ($taginfo OR $vbulletin->GPC['ltr'])
+	{
+		$show['resultbox'] = true;
+		
+		if (!$vbulletin->fdwtagcache OR (TIMENOW - (60 * 60) > $vbulletin->fdwtagcache))
+		{
+			$vbulletin->db->query_write("TRUNCATE TABLE " . TABLE_PREFIX . "fdwtagplain");
+			
+			// Make tag cache
+			$start = 0;
+			$doresults = true;
+			while ($doresults)
+			{
+				$doresults = false;
+				$insertquery = array();
+				
+				$tags = $vbulletin->db->query_read("
+					SELECT tagid, tagtext
+					FROM " . TABLE_PREFIX . "tag
+					WHERE tagid IN (SELECT DISTINCT tagid FROM " . TABLE_PREFIX . "tagthread) AND LENGTH(tagtext) > 2
+					LIMIT $start, 1000
+				");
+				
+				$start += 1000;
+				
+				while ($tag = $vbulletin->db->fetch_array($tags))
+				{
+					$doresults = true;
+					
+					$tag['tagtext'] = fdw_clean_tag($tag['tagtext']);
+					
+					if (strlen($tag['tagtext']) > 2)
+					{
+						$letter = $tag['tagtext'][0];
+						$insertquery[] = "($tag[tagid], '" . $vbulletin->db->escape_string($tag['tagtext']) . "', '" . $vbulletin->db->escape_string($letter) . "')";
+					}
+				}
+				
+				$vbulletin->db->free_result($tags);
+				
+				if (count($insertquery))
+				{
+					$vbulletin->db->query_write("
+						INSERT INTO " . TABLE_PREFIX . "fdwtagplain (tagid, tagtext, letter)
+							VALUES " . implode(', ', $insertquery)
+					);
+				}
+			}
+			
+			build_datastore('fdwtagcache', TIMENOW);
+		}
+		
+		if ($taginfo) {
+			$taginfo['tagtext'] = fdw_clean_tag($taginfo['tagtext']);
+			$selectedletter = $taginfo['tagtext'][0];
+		}
+		
+		$tags = $vbulletin->db->query_read("
+			SELECT tagid, tagtext
+			FROM " . TABLE_PREFIX . "fdwtagplain
+			WHERE letter = '" . $vbulletin->db->escape_string($selectedletter) . "'
+				AND tagid IN (SELECT tagid FROM " . TABLE_PREFIX . "tag)
+		");
+		
+		$taglist = array();
+		while ($tag = $vbulletin->db->fetch_array($tags))
+		{
+			$tag['group'] = $tag['close'] = 0;
+			$tag['percent'] = $vbulletin->options['fdw_tag_filter_percent'];
+			$taglist["$tag[tagid]"] = $tag;
+		}
+		$vbulletin->db->free_result($tags);
+		
+		if ($taginfo)
+		{
+			$taginfo['group'] = $taginfo['close'] = 0;
+			$taginfo['percent'] = $vbulletin->options['fdw_tag_filter_percent'];
+			$taglist["$taginfo[tagid]"] = $taginfo;
+			$searchlist = array($taginfo['tagid']);
+		}
+		else
+		{
+			$searchlist = array_keys($taglist);
+		}
+		
+		$start = $percent = 0;
+		$grouplist = array();
+		foreach ($searchlist AS $tagid)
+		{
+			$tag =& $taglist["$tagid"];
+			if ($tag['group'])
+			{
+				continue;
+			}
+			
+			if ($tag['percent'] < 95)
+			{
+				$keys = array_slice(array_keys($taglist), $start);
+				$values = array_slice($taglist, $start);
+				foreach (array_combine($keys, $values) AS $comparetag)
+				{
+					if ($comparetag['tagid'] == $tag['tagid'])
+					{
+						continue;
+					}
+					similar_text($tag['tagtext'], $comparetag['tagtext'], $percent);
+					if ($percent > $tag['percent'])
+					{
+						$tag['percent'] = $percent;
+						$tag['close'] = $comparetag['tagid'];
+					}
+					if ($percent > $taglist["$comparetag[tagid]"])
+					{
+						$taglist["$comparetag[tagid]"]['percent'] = $percent;
+						$taglist["$comparetag[tagid]"]['close'] = $tag['tagid'];
+					}
+				}
+			}
+			
+			if ($tag['close'])
+			{
+				if (!$taglist["$tag[close]"]['group'])
+				{
+					$tag['group'] = $taglist["$tag[close]"]['group'] = $tag['tagid'];
+					$grouplist["$tag[tagid]"] = array($tag['tagid'], $tag['close']);
+				}
+				else
+				{
+					$tag['group'] = $taglist["$tag[close]"]['group'];
+					$grouplist["$tag[group]"][] = $tag['tagid'];
+				}
+			}
+			
+			$start++;
+		}
+		unset($tag, $taglist, $searchlist);
+		
+		// Make selects options
+		$show['grouplist'] = false;
+		if (count($grouplist))
+		{
+			$tagids = array_map('implode_comma', $grouplist);
+			$tags = $vbulletin->db->query_read("
+				SELECT tagid, tagtext
+				FROM " . TABLE_PREFIX . "tag
+				WHERE tagid IN (" . implode(', ', $tagids) . ")
+			");
+			$taglist = array();
+			while ($tag = $vbulletin->db->fetch_array($tags))
+			{
+				$taglist["$tag[tagid]"] = $tag;
+			}
+			$vbulletin->db->free_result($tags);
+			
+			$show['grouplist'] = true;
+			
+			$groupbits = $tagbits = $optionclass = $optionselected = '';
+			foreach ($grouplist AS $tagid => $similartags)
+			{
+				$optiontitle = $taglist["$tagid"]['tagtext'] . ' (' . (count($similartags) - 1) . ')';
+				$optionvalue = $tagid;
+				eval('$groupbits .= "' . fetch_template('option') . '";');
+				
+				$optgroup_options = '';
+				foreach ($similartags AS $tag)
+				{
+					$optionvalue = $tag;
+					$optiontitle = $taglist["$tag"]['tagtext'];
+					eval('$optgroup_options .= "' . fetch_template('option') . '";');
+				}
+				
+				$optgroup_label = $taglist["$tagid"]['tagtext'];
+				$optgroup_extra = ' id="taggroup_' . $tagid . '"';
+				eval('$tagbits .= "' . fetch_template('optgroup') . '";');
+			}
+		}
+	}
+	
+	// build letter selector
+	for ($i=97; $i < 123; $i++)
+	{
+		$currentletter = chr($i);
+		$linkletter =& $currentletter;
+		$show['selectedletter'] = ($selectedletter == $currentletter AND !$taginfo) ? true : false;
+		eval('$letterbits .= "' . fetch_template('tag_filter_letter') . '";');
+	}
+	
+	// draw navbar
+	$navbits = array();
+	if ($taginfo)
+	{
+		$navbits['misc.php?' . $vbulletin->session->vars['sessionurl'] . 'do=tags'] = $vbphrase['filtertag'];
+		$navbits[''] = $taginfo['tagtext'];
+	}
+	else
+	{
+		$navbits[''] = $vbphrase['filtertag'];
+	}
+	$navbits = construct_navbits($navbits);
+	eval('$navbar = "' . fetch_template('navbar') . '";');
+	
+	eval('print_output("' . fetch_template('tag_filter_page') . '");');
+}
+
+if ($_POST['do'] == 'tagsmerge')
+{
+	// As in /admincp/thread.php?do=tagdomerge
+	
+	$vbulletin->input->clean_array_gpc('p', array(
+		'tag' => TYPE_ARRAY_UINT,
+		'tagtext' => TYPE_NOHTML,
+		'ltr' => TYPE_NOHTML
+	));
+
+	$taglist = $vbulletin->GPC['tag'];
+	if (count($taglist) < 2)
+	{
+		eval(standard_error(fetch_error('no_tags_selected')));
+	}
+	
+	$tagtext = $vbulletin->GPC['tagtext'];
+
+	// check if target already exists
+	$target = false;
+	if ($target = $db->query_first("
+		SELECT tagid
+		FROM " . TABLE_PREFIX . "tag
+		WHERE tagtext = '" . $db->escape_string($tagtext) . "'
+	"))
+	{
+		$target = $target['tagid'];
+	}
+	else
+	{
+		// create new tag
+		require_once(DIR . '/includes/functions_newpost.php');
+		$valid = fetch_valid_tags(array(), array($vbulletin->GPC['tagtext']), $errors, false);
+
+		if ($errors)
+		{
+			eval(standard_error(fetch_error('generic_error_x', implode('<br /><br />', $errors))));
+		}
+
+		if (!empty($valid))
+		{
+			$db->query_write("
+				INSERT IGNORE INTO " . TABLE_PREFIX . "tag
+					(tagtext, dateline)
+				VALUES
+					('" . $db->escape_string($valid[0]) . "', " . TIMENOW . ")
+			");
+
+			$target = $db->insert_id();
+			$tagtext = $valid[0];
+		}
+		else
+		{
+			eval(standard_error(fetch_error('invalid_tag_specified')));
+		}
+	}
+
+	if (false !== ($selected = array_search($target, $taglist)))
+	{
+		// ensure target is not in taglist
+		unset($taglist[$selected]);
+	}
+
+	// get affected threads
+	$replace_threads = $threadtaglists = array();
+	$result = $db->query_read("
+		SELECT DISTINCT(tagthread.threadid), thread.taglist
+		FROM " . TABLE_PREFIX . "tagthread AS tagthread
+		INNER JOIN " . TABLE_PREFIX . "thread AS thread ON (thread.threadid = tagthread.threadid)
+		WHERE tagid IN (" . implode(',', $taglist) . ")
+	");
+
+	if ($db->num_rows($result))
+	{
+		while (list($thread, $threadtaglist) = $db->fetch_row($result))
+		{
+			$threadtaglists[$thread] = $threadtaglist;
+			$replace_threads[] = "($target, $thread, " . $vbulletin->userinfo['userid'] . ", " . TIMENOW . ")";
+		}
+	}
+	$db->free_result($result);
+
+	// add new tag to affected threads
+	if (sizeof($replace_threads))
+	{
+		$db->query_write("
+			REPLACE INTO " . TABLE_PREFIX . "tagthread (tagid, threadid, userid, dateline) VALUES " .
+			implode(',', $replace_threads) . "
+		");
+	}
+
+	// update thread taglists
+	foreach ($threadtaglists as $threadid => $threadtaglist)
+	{
+		$found = false;
+		foreach(explode(',', $threadtaglist) AS $tag)
+		{
+			if (trim($tag) == $tagtext)
+			{
+				$found = true;
+				break;
+			}
+		}
+
+		if (!$found)
+		{
+			$db->query_write("
+				UPDATE " . TABLE_PREFIX . "thread
+				SET taglist = '" . $db->escape_string($threadtaglist . ', ' . $tagtext) . "'
+				WHERE threadid = $threadid
+			");
+		}
+	}
+	
+	$_POST['do'] = 'tagskilldo';
+}
+
+if ($_POST['do'] == 'tagskilldo')
+{
+	if ($doaction == 'tagskilldo')
+	{
+		$taglist = array($vbulletin->input->clean_gpc('p', 'tagid', TYPE_UINT));
+	}
+	
+	// delete old tags
+	if (sizeof($taglist))
+	{
+		$tags_result = $vbulletin->db->query_read("
+			SELECT tagtext
+			FROM " . TABLE_PREFIX . "tag
+			WHERE tagid IN (" . implode(',', $taglist) . ")
+		");
+
+		$tagstodelete = array();
+		while ($tag = $vbulletin->db->fetch_array($tags_result))
+		{
+			$tagstodelete[] = $tag['tagtext'];
+		}
+		unset($tag);
+
+		if (!empty($tagstodelete))
+		{
+			require_once(DIR . "/includes/functions_newpost.php");
+
+			$threads_result = $vbulletin->db->query_read("
+				SELECT DISTINCT thread.*
+				FROM " . TABLE_PREFIX . "tagthread AS tagthread
+				INNER JOIN " . TABLE_PREFIX . "thread AS thread ON (thread.threadid = tagthread.threadid)
+				WHERE tagthread.tagid IN (" . implode(',', $taglist) . ")
+			");
+			while ($thread = $vbulletin->db->fetch_array($threads_result))
+			{
+				$newtags = array();
+				foreach (explode(',', trim($thread['taglist'])) AS $oldtag)
+				{
+					$oldtag = trim($oldtag);
+					if (!in_array($oldtag, $tagstodelete))
+					{
+						$newtags[] = $oldtag;
+					}
+				}
+
+				$newtags_string = implode(', ', $newtags);
+
+				if ($newtags_string != $thread['taglist'])
+				{
+					// if efficiency is needed, this could be changed to a direct query
+					$threaddm =& datamanager_init('Thread', $vbulletin, ERRTYPE_SILENT, 'threadpost');
+					$threaddm->set_existing($thread);
+					$threaddm->set('taglist', $newtags_string);
+					$threaddm->save();
+
+					unset($threaddm);
+				}
+			}
+			
+			if ($doaction == 'tagskilldo' AND $vbulletin->options['fdw_tag_filter_locktag'])
+			{
+				$tagbadwords = preg_split('/\s+/s', vbstrtolower($vbulletin->options['tagbadwords']), -1, PREG_SPLIT_NO_EMPTY);
+				if (!in_array(strtolower($tagstodelete[0]), $tagbadwords))
+				{
+					$vbulletin->db->query_write("
+						UPDATE ". TABLE_PREFIX . "setting
+						SET value = CONCAT(value, ' " . $vbulletin->db->escape_string($tagstodelete[0]) . "')
+						WHERE varname = 'tagbadwords'
+					");
+					
+					require_once(DIR . '/includes/adminfunctions.php');
+					build_options();
+				}
+			}
+		}
+
+		$db->query_write("
+			DELETE FROM " . TABLE_PREFIX . "tag
+			WHERE tagid IN (" . implode(',', $taglist) . ")
+		");
+
+		$db->query_write("
+			DELETE FROM " . TABLE_PREFIX . "tagthread
+			WHERE tagid IN (" . implode(',', $taglist) . ")
+		");
+
+		// need to invalidate the search and tag cloud caches
+		build_datastore('tagcloud', '', 1);
+		build_datastore('searchcloud', '', 1);
+		build_datastore('fdwtags', '', 1);
+	}
+	
+	if ($doaction == 'tagsmerge')
+	{
+		$vbulletin->url = 'misc.php?' . $vbulletin->session->vars['sessionurl'] . 'do=tags&amp;ltr=' . $vbulletin->GPC['ltr'];
+	}
+	else
+	{
+		$vbulletin->url = 'misc.php?' . $vbulletin->session->vars['sessionurl'] . 'do=tagskill';
+	}
+	eval(print_standard_redirect(fetch_error('tags_edited_successfully'), false, true));
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Normalize fields</title>
+			<hookname>newthread_form_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_tag_enable'] AND $vbulletin->options['threadtagging'] AND !$newpost['preview'] AND $_POST['do'] == 'postthread')
+{
+	// Normalize fields and settings
+	$newpost['taglist'] =& $vbulletin->GPC['true_taglist'];
+	if ($vbulletin->options['fdw_tag_forum'])
+	{
+		$show['tag_option'] = $show['true_tag_option'];
+		if ($vbulletin->options['tagmaxthread'])
+		{
+			$vbulletin->options['tagmaxthread']--;
+		}
+		if ($vbulletin->options['tagmaxstarter'])
+		{
+			$vbulletin->options['tagmaxstarter']--;
+		}
+		else if ($vbulletin->options['tagmaxuser'])
+		{
+			$vbulletin->options['tagmaxuser']--;
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Autotag</title>
+			<hookname>newthread_post_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_tag_enable'] AND $vbulletin->options['threadtagging'] AND !$vbulletin->GPC['preview'])
+{
+	$vbulletin->GPC['true_taglist'] = $vbulletin->GPC['taglist'];
+	
+	if ($vbulletin->options['fdw_tag_forum'])
+	{
+		// Clean forum title
+		$forum_title_tag = ($vbulletin->options['tagforcelower'] ? vbstrtolower($foruminfo['title']) : $foruminfo['title']);
+		$forum_title_tag = implode($vbulletin->options['fdw_tag_replace'], split_tag_list($forum_title_tag));
+		
+		// Bypass word verifications
+		// IMPORTANT: Before first call to fetch_valid_tags()
+		$vbulletin->options['taggoodwords'] .= " $forum_title_tag ";
+	}
+	
+	if (empty($vbulletin->GPC['taglist']) AND $show['tag_option'])
+	{
+		$title_words = explode(' ', $vbulletin->GPC['subject']);
+		$possible_tags = array();
+		foreach ($title_words AS $possible_tag)
+		{
+			if ($vbulletin->options['fdw_tag_regexp'])
+			{
+				$possible_tag = preg_replace($vbulletin->options['fdw_tag_regexp'], $vbulletin->options['fdw_tag_replace'], $possible_tag);
+			}
+			$possible_tag = trim($possible_tag, '-');
+			if (!empty($possible_tag))
+			{
+				$possible_tags[] = $possible_tag;
+			}
+		}
+		
+		$true_permissions = $vbulletin->userinfo['permissions']['genericpermissions'];
+		if ($vbulletin->options['fdw_tag_existing'])
+		{
+			$vbulletin->userinfo['permissions']['genericpermissions'] &= ~$vbulletin->bf_ugp_genericpermissions['cancreatetag'];
+		}
+		
+		$vbulletin->GPC['taglist'] = implode(', ', fetch_valid_tags(array(), $possible_tags, $tag_errors, true, false));
+		$vbulletin->userinfo['permissions']['genericpermissions'] = $true_permissions;
+	}
+	
+	if ($vbulletin->options['fdw_tag_forum'])
+	{
+		// Bypass some checks
+		$show['true_tag_option'] = $show['tag_option'];
+		$show['tag_option'] = true;
+		if ($vbulletin->options['tagmaxthread'])
+		{
+			$vbulletin->options['tagmaxthread']++;
+		}
+		if ($vbulletin->options['tagmaxstarter'])
+		{
+			$vbulletin->options['tagmaxstarter']++;
+		}
+		else if ($vbulletin->options['tagmaxuser'])
+		{
+			$vbulletin->options['tagmaxuser']++;
+		}
+		if (!($vbulletin->userinfo['permissions']['genericpermissions'] & $vbulletin->bf_ugp_genericpermissions['cancreatetag']))
+		{
+			$vbulletin->db->query("
+				INSERT IGNORE INTO " . TABLE_PREFIX . "tag
+					(tagtext, dateline)
+				VALUES
+					('" . $vbulletin->db->escape_string($forum_title_tag) . "', " . TIMENOW . ")
+			");
+		}
+		
+		// Append tag
+		$vbulletin->GPC['taglist'] = $forum_title_tag . ',' . $vbulletin->GPC['taglist'];
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Pagenav links</title>
+			<hookname>pagenav_page</hookname>
+			<phpcode><![CDATA[if ($curpage == 1 AND THIS_SCRIPT == 'tags' AND $vbulletin->options['fdw_tag_forumsearch'] AND $GLOBALS['foruminfo']['forumid'])
+{
+	$address2 .= "&amp;f={$GLOBALS['foruminfo']['forumid']}";
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Forum name</title>
+			<hookname>tags_list_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_tag_forumsearch'] AND $foruminfo['forumid'])
+{
+	$tag['tagtext_url'] = urlencode(unhtmlspecialchars($tag['tagtext']));
+	eval('$tag[\'forumname\'] = "' . fetch_template('tag_forum') . '";');
+	if ($vbulletin->options['fdw_tag_forumsearch_name'])
+	{
+		$footer = "$tag[forumname] $footer";
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Search in forum</title>
+			<hookname>tags_list_query_limit</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_tag_forumsearch'] AND $foruminfo['forumid'])
+{
+	if (!in_array($foruminfo['forumid'], $forumids))
+	{
+		print_no_permission();
+	}
+	$forumids = array($foruminfo['forumid']);
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Tags: Fix forumid</title>
+			<hookname>tags_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_tag_forumsearch'])
+{
+	unset($forumid);
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Control Panel Home Pages" fieldname="cphome">
+			<phrase name="fdw_tag_cpaddnew" date="1300196540" username="Admin" version="2.0.0"><![CDATA[Agregar recomendación]]></phrase>
+			<phrase name="fdw_tag_cpconfig" date="1300196562" username="Admin" version="2.0.0"><![CDATA[Opciones]]></phrase>
+			<phrase name="fdw_tag_cpgroup" date="1300196472" username="Admin" version="2.0.0"><![CDATA[Temas recomendados]]></phrase>
+			<phrase name="fdw_tag_cpmanager" date="1300196501" username="Admin" version="2.0.0"><![CDATA[Gestionar recomendaciones]]></phrase>
+		</phrasetype>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="deleted_recomendation_successfully" date="1300201386" username="Admin" version="2.0.0"><![CDATA[Recomendación eliminada]]></phrase>
+		</phrasetype>
+		<phrasetype name="FDW Tag Tool" fieldname="fdwtagtool">
+			<phrase name="add_new" date="1300201910" username="Admin" version="2.0.0"><![CDATA[Agregar recomendación]]></phrase>
+			<phrase name="are_you_sure_want_to_delete_fdwtag_x" date="1300201442" username="Admin" version="2.0.0"><![CDATA[¿Está seguro de que desea eliminar permanentemente la recomendación <em>{1}</em>?<br /><span class="smallfont">({2}={3})</span><br />
+<br />
+Esta acción no puede ser revertida.]]></phrase>
+			<phrase name="boxtitle" date="1300202983" username="Admin" version="2.0.0"><![CDATA[Título de caja]]></phrase>
+			<phrase name="boxtitle_desc" date="1300209632" username="Admin" version="2.0.0"><![CDATA[Texto que se mostrará en el título de la caja de temas recomendados<br /><em>NOTA: </em>Si más de una recomendación se aplica al mismo foro, el título utilizado es del primero]]></phrase>
+			<phrase name="days" date="1300267842" username="Admin" version="2.1.0"><![CDATA[Días]]></phrase>
+			<phrase name="days_desc" date="1300267921" username="Admin" version="2.1.0"><![CDATA[Considerar temas cuyo último mensaje esté entre la fecha de hoy y el número de días especificado]]></phrase>
+			<phrase name="delete_tag" date="1299810557" username="Admin" version="1.7.0"><![CDATA[Eliminar etiqueta]]></phrase>
+			<phrase name="delete_tag_submit" date="1299811934" username="Admin" version="1.7.0"><![CDATA[Confirmar]]></phrase>
+			<phrase name="delete_x_tag" date="1299811877" username="Admin" version="1.7.0"><![CDATA[Eliminar etiqueta {2} (tagid={1})]]></phrase>
+			<phrase name="edit_fdwtag" date="1300202129" username="Admin" version="2.0.0"><![CDATA[Editar recomendación]]></phrase>
+			<phrase name="fdwtagmanager" date="1300201562" username="Admin" version="2.0.0"><![CDATA[Gestor de temas recomendados]]></phrase>
+			<phrase name="fdwtagtitle" date="1300199665" username="Admin" version="2.0.0"><![CDATA[Temas recomendados]]></phrase>
+			<phrase name="filter_by_tag" date="1299721916" username="Admin" version="1.6.6"><![CDATA[Buscar coincidencias por etiqueta]]></phrase>
+			<phrase name="filtertag" date="0" username="Admin" version="1.6.6"><![CDATA[Filtrar etiquetas]]></phrase>
+			<phrase name="lock_tag" date="1299811911" username="Admin" version="1.7.0"><![CDATA[Añadir etiqueta a la lista de palabras no permitidas]]></phrase>
+			<phrase name="master" date="1300209888" username="Admin" version="2.0.0"><![CDATA[Recomendación primaria]]></phrase>
+			<phrase name="master_desc" date="1300209975" username="Admin" version="2.0.0"><![CDATA[Si se especifica, esta recomendación sólo se aplica en caso de que la primaria no se aplique (por ejemplo, si el campo de perfil especificado está vacío)]]></phrase>
+			<phrase name="maxthreads" date="1300230113" username="Admin" version="2.0.0"><![CDATA[Número de temas]]></phrase>
+			<phrase name="maxthreads_desc" date="1300230162" username="Admin" version="2.0.0"><![CDATA[Número de temas a recomendar<br /><em>NOTA: </em>El valor de esta opción está limitada por el máximo de temas por foro especificado en las opciones generales]]></phrase>
+			<phrase name="no_similar_tags" date="1299723650" username="Admin" version="1.6.6"><![CDATA[No se encontraron etiquetas similares]]></phrase>
+			<phrase name="rec_field" date="1300202673" username="Admin" version="2.0.0"><![CDATA[Campo de perfil]]></phrase>
+			<phrase name="rec_field_desc" date="1300203265" username="Admin" version="2.0.0"><![CDATA[Seleccione el campo del perfil del  usuario al cual estarán ligadas las recomendaciones]]></phrase>
+			<phrase name="rec_popular" date="1300202605" username="Admin" version="2.0.0"><![CDATA[Etiqueta más popular]]></phrase>
+			<phrase name="rec_tag" date="1300202618" username="Admin" version="2.0.0"><![CDATA[Etiqueta especificada]]></phrase>
+			<phrase name="rec_tag_desc" date="1300203233" username="Admin" version="2.0.0"><![CDATA[Especifique la etiqueta a partir de la cual se mostrarán las recomendaciones]]></phrase>
+			<phrase name="save_active_status" date="1300201885" username="Admin" version="2.0.0"><![CDATA[Save Active Status]]></phrase>
+			<phrase name="search_all" date="1299729847" username="Admin" version="1.6.7"><![CDATA[Buscar todos los tags con semejanzas]]></phrase>
+			<phrase name="search_tag" date="1299812154" username="Admin" version="1.7.0"><![CDATA[Buscar etiqueta]]></phrase>
+			<phrase name="similar_tags" date="1299722179" username="Admin" version="1.6.6"><![CDATA[Etiquetas semejantes]]></phrase>
+			<phrase name="sortby" date="1300207295" username="Admin" version="2.0.0"><![CDATA[Ordenar por]]></phrase>
+			<phrase name="sortby_dateline" date="1300207325" username="Admin" version="2.0.0"><![CDATA[Fecha de creación]]></phrase>
+			<phrase name="sortby_desc" date="1300208951" username="Admin" version="2.0.0"><![CDATA[<em>NOTA: </em>No se aplicará más de un método de ordenamiento para un mismo foro.<br />
+<em>IMPORTANTE: </em>Sólo seleccione 'Ranking' si tiene instalado el producto fdw_rank]]></phrase>
+			<phrase name="sortby_lastpost" date="1300207313" username="Admin" version="2.0.0"><![CDATA[Último mensaje]]></phrase>
+			<phrase name="sortby_rank" date="1300207350" username="Admin" version="2.0.0"><![CDATA[Ranking]]></phrase>
+			<phrase name="title_description" date="1300202197" username="Admin" version="2.0.0"><![CDATA[Sólo para identificarlo en el Panel de Administración]]></phrase>
+			<phrase name="type" date="1300202794" username="Admin" version="2.0.0"><![CDATA[Tipo]]></phrase>
+			<phrase name="unreaded" date="1300210911" username="Admin" version="2.0.0"><![CDATA[No leídos]]></phrase>
+			<phrase name="unreaded_desc" date="1300210946" username="Admin" version="2.0.0"><![CDATA[Sólo recomendar temas que contengan mensajes sin leer]]></phrase>
+		</phrasetype>
+		<phrasetype name="Maintenance Tools" fieldname="maintenance">
+			<phrase name="fdw_autotag" date="1299077524" username="Admin" version="1.0.0"><![CDATA[Etiquetar temas]]></phrase>
+			<phrase name="fdw_autotag_start" date="1299081542" username="Admin" version="1.0.0"><![CDATA[Desde fecha]]></phrase>
+			<phrase name="fdw_autotag_successfully" date="1299078208" username="Admin" version="1.0.0"><![CDATA[Etiquetado de temas finalizado]]></phrase>
+			<phrase name="fdw_tagging_threads" date="1299077930" username="Admin" version="1.0.0"><![CDATA[Etiquetando temas]]></phrase>
+			<phrase name="function_fdw_autotag" date="1299077576" username="Admin" version="1.0.0"><![CDATA[Etiquetar temas a partir del título en caso de que no estén etiquetadas]]></phrase>
+		</phrasetype>
+		<phrasetype name="Searching" fieldname="search">
+			<phrase name="tag_search_at_x" date="1299161686" username="Admin" version="1.6.1"><![CDATA[Resultados en <a href="forumdisplay.php?f={2}">{1}</a>. Más temas sobre <a href="tags.php?tag={4}">{3}</a>.]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_tag_enable_desc" date="1298986638" username="Admin" version="1.0.0"><![CDATA[Activar etiquetado automático de temas]]></phrase>
+			<phrase name="setting_fdw_tag_enable_title" date="1298986638" username="Admin" version="1.0.0"><![CDATA[Activar/Desactivar]]></phrase>
+			<phrase name="setting_fdw_tag_existing_desc" date="1298986675" username="Admin" version="1.0.0"><![CDATA[Usar solamente tags existentes]]></phrase>
+			<phrase name="setting_fdw_tag_existing_title" date="1298986675" username="Admin" version="1.0.0"><![CDATA[Existentes]]></phrase>
+			<phrase name="setting_fdw_tag_filter_desc" date="1299677469" username="Admin" version="1.6.6"><![CDATA[Seleccione los grupos de usuarios que tendrán acceso a la herramienta de filtrado de etiquetas semejantes.]]></phrase>
+			<phrase name="setting_fdw_tag_filter_locktag_desc" date="1299810422" username="Admin" version="1.7.0"><![CDATA[Agregar etiquetas eliminadas a la lista de etiquetas no permitidas]]></phrase>
+			<phrase name="setting_fdw_tag_filter_locktag_title" date="1299810422" username="Admin" version="1.7.0"><![CDATA[Herramienta de filtro: Etiquetas eliminadas]]></phrase>
+			<phrase name="setting_fdw_tag_filter_percent_desc" date="1299762432" username="Admin" version="1.6.9"><![CDATA[Porcentaje de similitud a considerar]]></phrase>
+			<phrase name="setting_fdw_tag_filter_percent_title" date="1299762432" username="Admin" version="1.6.9"><![CDATA[Herramienta de filtro: Porcentaje]]></phrase>
+			<phrase name="setting_fdw_tag_filter_title" date="1299677469" username="Admin" version="1.6.6"><![CDATA[Herramienta de filtro]]></phrase>
+			<phrase name="setting_fdw_tag_forum_desc" date="1299073996" username="Admin" version="1.0.0"><![CDATA[Agregar nombre del foro como tag.<br /><br /><strong>NOTA: </strong>Esta opción agrega el tag al tema ignorando los permisos del usuario.]]></phrase>
+			<phrase name="setting_fdw_tag_forum_title" date="1299073996" username="Admin" version="1.0.0"><![CDATA[Foro]]></phrase>
+			<phrase name="setting_fdw_tag_forumsearch_desc" date="1299157082" username="Admin" version="1.6.0"><![CDATA[Permitir buscar etiqueta en foro específico]]></phrase>
+			<phrase name="setting_fdw_tag_forumsearch_name_desc" date="1299161338" username="Admin" version="1.6.0"><![CDATA[Mostrar el nombre del foro en que se está realizando la búsqueda]]></phrase>
+			<phrase name="setting_fdw_tag_forumsearch_name_title" date="1299161338" username="Admin" version="1.6.0"><![CDATA[Nombre del foro]]></phrase>
+			<phrase name="setting_fdw_tag_forumsearch_title" date="1299157082" username="Admin" version="1.6.0"><![CDATA[Búsqueda en foro]]></phrase>
+			<phrase name="setting_fdw_tag_popular_cache_desc" date="1299111996" username="Admin" version="1.5.0"><![CDATA[Número de horas que dura la caché de etiquetas populares]]></phrase>
+			<phrase name="setting_fdw_tag_popular_cache_title" date="1299111996" username="Admin" version="1.5.0"><![CDATA[Etiquetas/Subforos: Caché (Horas)]]></phrase>
+			<phrase name="setting_fdw_tag_popular_days_desc" date="1299111901" username="Admin" version="1.5.0"><![CDATA[Número de días a tomar en cuenta para generar las etiquetas populares a partir del uso de las mismas.]]></phrase>
+			<phrase name="setting_fdw_tag_popular_days_title" date="1299111901" username="Admin" version="1.5.0"><![CDATA[Etiquetas/Subforos: Historial de uso (Días)]]></phrase>
+			<phrase name="setting_fdw_tag_popular_desc" date="1299289842" username="Admin" version="1.6.5"><![CDATA[Número de elementos a mostrar en la caja de subforos (subforos + tags pupulares)]]></phrase>
+			<phrase name="setting_fdw_tag_popular_forum_desc" date="1299127165" username="Admin" version="1.5.1"><![CDATA[Foros donde se mostrarán etiquetas populares como subforos]]></phrase>
+			<phrase name="setting_fdw_tag_popular_forum_title" date="1299127165" username="Admin" version="1.5.1"><![CDATA[Etiquetas/Subforos: Foros]]></phrase>
+			<phrase name="setting_fdw_tag_popular_groups_desc" date="1299111545" username="Admin" version="1.5.0"><![CDATA[Grupos de usuarios que pueden ver las etiquetas como subforos]]></phrase>
+			<phrase name="setting_fdw_tag_popular_groups_title" date="1299111545" username="Admin" version="1.5.0"><![CDATA[Etiquetas/Subforos: Grupos de usuario]]></phrase>
+			<phrase name="setting_fdw_tag_popular_notself_desc" date="1299127343" username="Admin" version="1.5.1"><![CDATA[Excluir una etiqueta si coincide con el nombre del foro]]></phrase>
+			<phrase name="setting_fdw_tag_popular_notself_title" date="1299127343" username="Admin" version="1.5.1"><![CDATA[Etiquetas/Subforos: Excluir foro]]></phrase>
+			<phrase name="setting_fdw_tag_popular_style_desc" date="1299203172" username="Admin" version="1.6.4"><![CDATA[Estilos en los que se mostrarán las etiquetas populares]]></phrase>
+			<phrase name="setting_fdw_tag_popular_style_title" date="1299203172" username="Admin" version="1.6.4"><![CDATA[Etiquetas/Subforos: Estilos]]></phrase>
+			<phrase name="setting_fdw_tag_popular_title" date="1299289842" username="Admin" version="1.6.5"><![CDATA[Etiquetas/Subforos]]></phrase>
+			<phrase name="setting_fdw_tag_popular_url_desc" date="1299158447" username="Admin" version="1.6.0"><![CDATA[Especifique el formato del enlace al que apuntará el enlace del subforo]]></phrase>
+			<phrase name="setting_fdw_tag_popular_url_title" date="1299158447" username="Admin" version="1.6.0"><![CDATA[Etiquetas/Subforos: Enlace]]></phrase>
+			<phrase name="setting_fdw_tag_rec_enable_desc" date="1300196665" username="Admin" version="2.0.0"><![CDATA[Activar recomendaciones de temas en base a etiquetas]]></phrase>
+			<phrase name="setting_fdw_tag_rec_enable_title" date="1300196665" username="Admin" version="2.0.0"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="setting_fdw_tag_rec_max_desc" date="1300196795" username="Admin" version="2.0.0"><![CDATA[Máximo de temas recomendados en un mismo foro]]></phrase>
+			<phrase name="setting_fdw_tag_rec_max_title" date="1300196795" username="Admin" version="2.0.0"><![CDATA[Número de recomendaciones]]></phrase>
+			<phrase name="setting_fdw_tag_rec_template_desc" date="1300247752" username="Admin" version="2.0.0"><![CDATA[Agregar automáticamente a la plantilla FORUMDISPLAY]]></phrase>
+			<phrase name="setting_fdw_tag_rec_template_title" date="1300247752" username="Admin" version="2.0.0"><![CDATA[Plantillas]]></phrase>
+			<phrase name="setting_fdw_tag_rec_vote_desc" date="1300228699" username="Admin" version="2.0.0"><![CDATA[Activar compatibilidad con plugin de puntuación de temas (productid=fdw_vote)<br /><strong>Nota:</strong> Asegúrese de tener instalado el producto indicado antes de habilitar esta opción.]]></phrase>
+			<phrase name="setting_fdw_tag_rec_vote_title" date="1300228699" username="Admin" version="2.0.0"><![CDATA[Puntuación de temas]]></phrase>
+			<phrase name="setting_fdw_tag_regexp_desc" date="1299085570" username="Admin" version="1.0.0"><![CDATA[Caracteres no válidos para los posibles tags<br /><br /><strong>NOTA: </strong>Asegúrese de que sea un expresión regular válida.]]></phrase>
+			<phrase name="setting_fdw_tag_regexp_title" date="1299085570" username="Admin" version="1.0.0"><![CDATA[Caracteres inválidos]]></phrase>
+			<phrase name="setting_fdw_tag_replace_desc" date="1299085662" username="Admin" version="1.0.0"><![CDATA[Reemplazar caracteres no válidos por este carácter.<br /><br /><strong>NOTA: </strong>También se aplica al nombre del foro en caso de que contenga caracteres especificados como separadores.]]></phrase>
+			<phrase name="setting_fdw_tag_replace_title" date="1299085662" username="Admin" version="1.0.0"><![CDATA[Carácter de reemplazo]]></phrase>
+			<phrase name="settinggroup_fdw_tag_recomended" date="1300196623" username="Admin" version="2.0.0"><![CDATA[Temas recomendados]]></phrase>
+			<phrase name="settinggroup_fdw_tag_setup" date="1298986465" username="Admin" version="1.0.0"><![CDATA[Tags automáticos]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_tag_setup" displayorder="600">
+			<setting varname="fdw_tag_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_existing" displayorder="20">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_regexp" displayorder="30">
+				<datatype>free</datatype>
+				<defaultvalue><![CDATA[/[^a-záéíóú]+/i]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_forum" displayorder="40">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_replace" displayorder="50">
+				<datatype>free</datatype>
+				<defaultvalue>-</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular" displayorder="60">
+				<datatype>integer</datatype>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_groups" displayorder="70">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_style" displayorder="75">
+				<datatype>free</datatype>
+				<optioncode>fdwstyles:5</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_days" displayorder="80">
+				<datatype>integer</datatype>
+				<defaultvalue>30</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_cache" displayorder="90">
+				<datatype>integer</datatype>
+				<defaultvalue>24</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_forum" displayorder="100">
+				<datatype>free</datatype>
+				<optioncode>fdwforums:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_notself" displayorder="110">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_popular_url" displayorder="120">
+				<datatype>free</datatype>
+				<defaultvalue><![CDATA[tags.php?tag={tagtext}&f={forumid}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_forumsearch" displayorder="130">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_forumsearch_name" displayorder="140">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_filter" displayorder="150">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_filter_percent" displayorder="160">
+				<datatype>posint</datatype>
+				<defaultvalue>75</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_filter_locktag" displayorder="170">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+		</settinggroup>
+		<settinggroup name="fdw_tag_recomended" displayorder="605">
+			<setting varname="fdw_tag_rec_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_rec_max" displayorder="20">
+				<datatype>posint</datatype>
+				<defaultvalue>5</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_rec_vote" displayorder="30">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_tag_rec_template" displayorder="40">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_forumjump" active="1">
+	<title>Custom ForumJump</title>
+	<description>Personaliza el selector de foros</description>
+	<version>1.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.1" maxversion="" />
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+		<template name="forumjump_fdw" templatetype="template" date="1294549243" username="Admin" version="1.0.0"><![CDATA[<if condition="$isforumjump">
+<div class="smallfont" style="text-align:$stylevar[left]; white-space:nowrap">
+	<form action="forumdisplay.php" method="get">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+	<input type="hidden" name="daysprune" value="$daysprune" />
+	<strong>$vbphrase[forum_jump]</strong><br />
+	<select name="f" id="forumjump_select">
+		<optgroup label="$vbphrase[site_areas]">
+			<option value="cp" $frmjmpsel[usercp]>$vbphrase[user_control_panel]</option>
+			<option value="pm" $frmjmpsel[pm]>$vbphrase[private_messages]</option>
+			<option value="subs" $frmjmpsel[subs]>$vbphrase[subscriptions]</option>
+			<option value="wol" $frmjmpsel[wol]>$vbphrase[whos_online]</option>
+			<option value="search" $frmjmpsel[search]>$vbphrase[search_forums]</option>
+			<option value="home" $frmjmpsel[home]>$vbphrase[forums_home]</option>
+		</optgroup>
+		<if condition="$jumpforumbits">
+		<optgroup label="$vbphrase[forums]">
+		$jumpforumbits
+		</optgroup>
+		</if>
+	</select><span id="forumjump_suggest"><input type="text" class="bginput" id="forumjump_input" style="display:none" /></span><span id="forumjump"></span>$gobutton
+	</form>
+</div>
+<div id="forumjump_menu" class="vbmenu_popup" style="display:none"></div><div id="forumjump_suggest_menu" class="vbmenu_popup" style="display:none"></div>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_forumjump.js"></script>
+<script type="text/javascript">fdwForumList.register("forumjump", true, true);</script>
+<else />
+$moveforumbits</select><span id="destforum_suggest"><input type="text" class="bginput" id="destforum_input" style="display:none" /></span><span id="destforum"></span>
+<div id="destforum_menu" class="vbmenu_popup" style="display:none"></div>
+<div id="destforum_suggest_menu" class="vbmenu_popup" style="display:none"></div>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_forumjump.js"></script>
+<script type="text/javascript">fdwForumList.register("destforum", false, false, "destforumid");</script>
+<select style="display:none">
+</if>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="3">
+			<title>FDW ForumJump: Replace template</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[$replacetemplates += array('forumjump' => 'forumjump_fdw');]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumJump: Set template var</title>
+			<hookname>forumjump</hookname>
+			<phpcode>$isforumjump = true;</phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumJump: Move Threads (Inlinemod)</title>
+			<hookname>inlinemod_complete</hookname>
+			<phpcode><![CDATA[if ($moveforumbits) {
+	$isforumjump = false;
+	eval('$moveforumbits = "' . fetch_template('forumjump') . '";');
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumJump: Move threads (ThreadManage)</title>
+			<hookname>threadmanage_complete</hookname>
+			<phpcode><![CDATA[if ($moveforumbits) {
+	$isforumjump = false;
+	eval('$moveforumbits = "' . fetch_template('forumjump') . '";');
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+	</phrases>
+	<options>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

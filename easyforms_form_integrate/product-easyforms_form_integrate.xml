@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="easyforms_form_integrate" active="1">
+	<title>Integrar foro con EasyForm</title>
+	<description>Opciones adicionales para EasyForms</description>
+	<version>2.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="easyforms" minversion="3.0" maxversion="" />
+	</dependencies>
+	<codes>
+		<code version="2.0.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwforms (
+		fid INT UNSIGNED NOT NULL,
+		expirefield INT UNSIGNED NOT NULL,
+		parsefield TEXT,
+		email TINYINT NOT NULL,
+		smtp TINYINT NOT NULL,
+		smtphost VARCHAR(250) NOT NULL,
+		smtpuser VARCHAR(250) NOT NULL,
+		smtppass VARCHAR(250) NOT NULL,
+		smtpsecure VARCHAR(250) NOT NULL,
+		smtpport SMALLINT NOT NULL,
+		emailfrom VARCHAR(250) NOT NULL,
+		emailsubject VARCHAR(250) NOT NULL,
+		emailbody MEDIUMTEXT NOT NULL,
+		emailbodyparsed MEDIUMTEXT NOT NULL,
+		emailavoid TINYINT NOT NULL,
+		minreplyes SMALLINT NOT NULL,
+		minvotes SMALLINT NOT NULL,
+		openthreads TINYINT NOT NULL,
+		closethread TINYINT NOT NULL,
+		PRIMARY KEY (fid)
+	)
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwformresults (
+		id INT UNSIGNED NOT NULL,
+		threadid INT UNSIGNED NOT NULL,
+		expiredays SMALLINT NOT NULL,
+		status TINYINT NOT NULL,
+		email TINYINT NOT NULL,
+		PRIMARY KEY (id)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwforms");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwformresults");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="form_fdw" templatetype="template" date="1302054190" username="Admin" version="2.0.0"><![CDATA[$stylevar[htmldoctype]
+<html xmlns="http://www.w3.org/1999/xhtml" dir="$stylevar[textdirection]" lang="$stylevar[languagecode]">
+<head>
+$headinclude
+<title>$vboptions[bbtitle] - $vbphrase[forms]</title>
+</head>
+<body>
+$header
+$navbar
+
+<form action="misc.php" method="get">
+<input type="hidden" name="do" value="fdwform">
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+<tr>
+	<td class="tcat">$vbphrase[forms]</td>
+</tr>
+<tr>
+	<td class="alt1" align="center"><div style="width: $stylevar[formwidth]" align="$stylevar[left]">
+		<select id="formbits" name="fid" style="width:60%">$formbits</select>
+		<input type="submit" class="button" value="$vbphrase[go]" />
+	</div></td>
+</tr>
+</table>
+</form>
+<br />
+
+<form action="misc.php?do=updatefdwform" method="post">
+	<input type="hidden" name="do" value="updatefdwform" />
+	<input type="hidden" name="fid" value="$editingform[fid]" />
+	<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+<if condition="$session['sessionhash']">
+	<input type="hidden" name="s" value="$session[sessionhash]" />
+</if>
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+<tr>
+	<td class="tcat">$vbphrase[edit_form]</td>
+</tr>
+<tr>
+	<td class="panelsurround" align="center">
+		<div class="panel">
+			<div style="width:$stylevar[formwidth]" align="$stylevar[left]">
+				<fieldset class="fieldset">
+					<legend>$vbphrase[thread_match]</legend>
+					<div style="padding:$stylevar[formspacer]px">
+						<div class="fieldset">
+							<label for="form_thread_opened"><input type="checkbox" value="1" name="openthreads" id="form_thread_opened" <if condition="$editingform['openthreads']">checked="checked" </if>/>$vbphrase[thread_opened]</label>
+							<br />
+							<label for="form_thread_minreply">$vbphrase[thread_minreplyes]</label>
+							<br />
+							<input id="form_thread_minreply" type="text" class="bginput" name="minreplyes" value="$editingform[minreplyes]" size="20" maxlength="250" />
+							<br />
+							<label for="form_thread_minvotes">$vbphrase[thread_minvotes]</label>
+							<br />
+							$vbphrase[thread_minvotes_desc]
+							<br />
+							<input id="form_thread_minvotes" type="text" class="bginput" name="minvotes" value="$editingform[minvotes]" size="20" maxlength="250" />
+						</div>
+					</div>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend>$vbphrase[expiration_field]</legend>
+					<div style="padding:$stylevar[formspacer]px">
+						<div class="fieldset">
+							<label for="form_expire_field">$vbphrase[expire_field]</label>
+							<br />
+							<select name="expirefield" id="form_expire_field">$fieldbits</select>
+							<br />
+							<label for="form_expire_parse">$vbphrase[expire_parse]</label>
+							<br />
+							$vbphrase[expire_parse_desc]
+							<br />
+							<textarea id="form_expire_parse" class="bginput" name="expireparse" cols="30" rows="5">$editingform[parsefield]</textarea>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend>$vbphrase[email]</legend>
+					<div style="padding:$stylevar[formspacer]px">
+						<div class="fieldset">
+							<label for="form_send_email"><input type="checkbox" value="1" name="email" id="form_send_email" <if condition="$editingform['email']">checked="checked" </if>/>$vbphrase[send_email]</label>
+							<br /><br />
+							<label for="form_email_address">$vbphrase[email_from]</label>
+							<br />
+							<input id="form_email_address" type="text" class="bginput" name="emailfrom" value="$editingform[emailfrom]" size="50" maxlength="250" />
+							<br />
+							<label for="form_email_subject">$vbphrase[email_subject]</label>
+							<br />
+							<input id="form_email_subject" type="text" class="bginput" name="emailsubject" value="$editingform[emailsubject]" size="50" maxlength="250" />
+							<br />
+							<label for="form_email_body">$vbphrase[email_body]</label>
+							<br />
+							<textarea id="form_email_body" class="bginput" name="emailbody" cols="60" rows="7">$editingform[emailbody]</textarea>
+							<br />
+							<label for="form_email_avoid"><input type="checkbox" value="1" name="emailavoid" id="form_email_avoid" <if condition="$editingform['emailavoid']">checked="checked" </if>/>$vbphrase[email_avoid]</label>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend>$vbphrase[smtp]</legend>
+					<div style="padding:$stylevar[formspacer]px">
+						<div class="fieldset">
+							<label for="form_smtp"><input type="checkbox" value="1" name="smtp" id="form_smtp" <if condition="$editingform['smtp']">checked="checked" </if>/>$vbphrase[smtp_use]</label>
+							<br /><br />
+							<label for="form_smtp_host">$vbphrase[smtp_host]</label>
+							<br />
+							<input id="form_smtp_host" type="text" class="bginput" name="smtphost" value="$editingform[smtphost]" size="50" maxlength="250" />
+							<br />
+							<label for="form_smtp_user">$vbphrase[smtp_user]</label>
+							<br />
+							<input id="form_smtp_user" type="text" class="bginput" name="smtpuser" value="$editingform[smtpuser]" size="50" maxlength="250" />
+							<br />
+							<label for="form_smtp_pass">$vbphrase[smtp_pass]</label>
+							<br />
+							<input id="form_smtp_pass" type="text" class="bginput" name="smtppass" value="$editingform[smtppass]" size="50" maxlength="250" />
+							<br />
+							<label for="form_smtp_port">$vbphrase[smtp_port]</label>
+							<br />
+							<input id="form_smtp_port" type="text" class="bginput" name="smtpport" value="$editingform[smtpport]" size="20" maxlength="250" />
+							<br />
+							<label for="form_smtp_secure">$vbphrase[smtp_secure]</label>
+							<br />
+							<select id="form_smtp_secure" name="smtpsecure">
+								<option value="none"$smtpselected[none]>$vbphrase[none]</option>
+								<option value="ssl"$smtpselected[ssl]>$vbphrase[ssl]</option>
+								<option value="tls"$smtpselected[tls]>$vbphrase[tls]</option>
+							</select>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend>$vbphrase[thread_options]</legend>
+					<div style="padding:$stylevar[formspacer]px">
+						<div class="fieldset">
+							<label for="form_thread_close"><input type="checkbox" value="1" name="closethread" id="form_thread_close" <if condition="$editingform['closethread']">checked="checked" </if>/>$vbphrase[thread_close]</label>
+						</div>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+		<div style="margin-top:$stylevar[cellpadding]px">
+			<input type="submit" class="button" value="$vbphrase[save]" accesskey="s" />
+			<input type="reset" class="button" value="$vbphrase[reset_fields]" accesskey="r" />
+		</div>
+	</td>
+</tr>
+</table>
+</form>
+<br />
+
+$footer
+
+</body>
+</html>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>EasyForm: Cache template</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'misc' AND $_REQUEST['do'] == 'fdwform')
+{
+	$globaltemplates[] = 'form_fdw';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>EasyForm: Phrasegroup</title>
+			<hookname>init_startup</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'misc' AND ($_REQUEST['do'] == 'fdwform' OR $_POST['do'] == 'updatefdwform'))
+{
+	$phrasegroups[] = 'fdweasyforms';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>EasyForm: Additional form options</title>
+			<hookname>misc_start</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'fdwform' OR $_POST['do'] == 'updaterfdwform')
+{
+	$caneditform = unserialize($vbulletin->options['caneditform']);
+	if (!$caneditform OR !is_member_of($vbulletin->userinfo, $caneditform))
+	{
+		print_no_permission();
+	}
+}
+
+if ($_POST['do'] == 'updatefdwform')
+{
+	$vbulletin->input->clean_array_gpc('p', array(
+		'fid' => TYPE_UINT,
+		'openthreads' => TYPE_BOOL,
+		'minvotes' => TYPE_UINT,
+		'minreplyes' => TYPE_UINT,
+		'expirefield' => TYPE_UINT,
+		'expireparse' => TYPE_NOHTML,
+		'email' => TYPE_BOOL,
+		'emailfrom' => TYPE_STR,
+		'emailsubject' => TYPE_STR,
+		'emailbody' => TYPE_STR,
+		'emailavoid' => TYPE_BOOL,
+		'smtp' => TYPE_BOOL,
+		'smtphost' => TYPE_STR,
+		'smtpuser' => TYPE_STR,
+		'smtppass' => TYPE_STR,
+		'smtpsecure' => TYPE_NOHTML,
+		'smtpport' => TYPE_UINT,
+		'closethread' => TYPE_BOOL
+	));
+	
+	if (!($editingform = $vbulletin->db->query_first("
+		SELECT fid FROM " . TABLE_PREFIX . "forms
+		WHERE fid = {$vbulletin->GPC['fid']}
+			AND CAST(forumid AS UNSIGNED INT) > 0
+			AND FIND_IN_SET('2', action)
+			AND FIND_IN_SET('5', action)
+	")))
+	{
+		standard_error($vbphrase['invalid_form']);
+	}
+	
+	if ($vbulletin->GPC['email'] AND (!$vbulletin->GPC['emailsubject'] OR !$vbulletin->GPC['emailbody']))
+	{
+		standard_error($vbphrase['unfilled_email_data']);
+	}
+	
+	if ($vbulletin->GPC['smtp'] AND (!$vbulletin->GPC['smtphost'] OR !$vbulletin->GPC['smtpuser'] OR !$vbulletin->GPC['smtpport']))
+	{
+		standard_error($vbphrase['unfilled_smtp_data']);
+	}
+	
+	if (!in_array($vbulletin->GPC['smtpsecure'], array('tls', 'ssl')))
+	{
+		$vbulletin->GPC['smtpsecure'] = 'none';
+	}
+	
+	// Validate body template
+	if ($vbulletin->GPC['email'])
+	{
+		require_once(DIR . '/includes/adminfunctions_template.php');
+		$vbulletin->GPC['bodyparsed'] = compile_template($vbulletin->GPC['emailbody']);
+		$errors = check_template_errors($vbulletin->GPC['bodyparsed']);
+		if (!empty($errors))
+		{
+			standard_error(construct_phrase($vbphrase['invalid_email_template'], $errors));
+		}
+	}
+	
+	$vbulletin->db->query_write("
+		REPLACE INTO " . TABLE_PREFIX . "fdwforms
+			(
+				fid, expirefield, parsefield,
+				email, smtp, smtphost,
+				smtpuser, smtppass, smtpsecure,
+				emailfrom, emailsubject, emailbody,
+				emailbodyparsed, emailavoid, minreplyes,
+				minvotes, openthreads, closethread,
+				smtpport
+			)
+		VALUES
+			(
+				{$vbulletin->GPC['fid']}, {$vbulletin->GPC['expirefield']}, '" . $vbulletin->db->escape_string($vbulletin->GPC['expireparse']) . "',
+				{$vbulletin->GPC['email']}, {$vbulletin->GPC['smtp']}, '" . $vbulletin->db->escape_string($vbulletin->GPC['smtphost']) . "',
+				'" . $vbulletin->db->escape_string($vbulletin->GPC['smtpuser']) . "', '" . $vbulletin->db->escape_string($vbulletin->GPC['smtppass']) . "', '{$vbulletin->GPC['smtpsecure']}',
+				'" . $vbulletin->db->escape_string($vbulletin->GPC['emailfrom']) . "', '" . $vbulletin->db->escape_string($vbulletin->GPC['emailsubject']) . "', '" . $vbulletin->db->escape_string($vbulletin->GPC['emailbody']) . "',
+				'" . $vbulletin->db->escape_string($vbulletin->GPC['bodyparsed']) . "', {$vbulletin->GPC['emailavoid']}, {$vbulletin->GPC['minreplyes']},
+				{$vbulletin->GPC['minvotes']}, {$vbulletin->GPC['openthreads']}, {$vbulletin->GPC['closethread']},
+				{$vbulletin->GPC['smtpport']}
+			)
+	");
+	
+	$vbulletin->url = 'misc.php?' . $vbulletin->session->vars['sessionurl'] . 'do=fdwform&amp;fid=' . $vbulletin->GPC['fid'];
+	eval(print_standard_redirect($vbphrase['fdwform_edited_successfully'], false, true));
+}
+
+if ($_REQUEST['do'] == 'fdwform')
+{
+	$fid = $vbulletin->input->clean_gpc('r', 'fid', TYPE_UINT);
+	
+	$forms = $vbulletin->db->query_read("
+		SELECT fid, title FROM " . TABLE_PREFIX . "forms
+		WHERE CAST(forumid AS UNSIGNED INT) > 0
+			AND FIND_IN_SET('2', action)
+			AND FIND_IN_SET('5', action)
+	");
+	
+	$allforms = array();
+	while ($form = $vbulletin->db->fetch_array($forms))
+	{
+		$allforms["$form[fid]"] = $form;
+	}
+	if (!count($allforms))
+	{
+		standard_error($vbphrase['no_valid_forms']);
+	}
+	if (!$fid)
+	{
+		$fid = key($allforms);
+	}
+	
+	$editingform = $vbulletin->db->query_first("SELECT * FROM " . TABLE_PREFIX . "fdwforms WHERE fid = $fid");
+	if (!$editingform)
+	{
+		$editingform = array(
+			'fid' => $fid,
+			'emailfrom' => $vbulletin->options['webmasteremail'],
+			'openthreads' => true,
+			'emailavoid' => true,
+			'minreplyes' => 0,
+			'minvotes' => 0,
+			'smtpsecure' => 'tls',
+			'smtpport' => 25
+		);
+	}
+	
+	// Clean some variables
+	$editingform['emailfrom'] = $vbulletin->input->clean($editingform['emailfrom'], TYPE_NOHTML);
+	$editingform['emailsubject'] = $vbulletin->input->clean($editingform['emailsubject'], TYPE_NOHTML);
+	$editingform['emailbody'] = $vbulletin->input->clean($editingform['emailbody'], TYPE_NOHTML);
+	$editingform['smtphost'] = $vbulletin->input->clean($editingform['smtphost'], TYPE_NOHTML);
+	$editingform['smtpuser'] = $vbulletin->input->clean($editingform['smtpuser'], TYPE_NOHTML);
+	$editingform['smtppass'] = $vbulletin->input->clean($editingform['smtppass'], TYPE_NOHTML);
+	
+	// Construct fieldbits
+	$fieldbits = $optionclass = '';
+	$formfields = $vbulletin->db->query_read("SELECT id, question FROM " . TABLE_PREFIX . "formbits WHERE fid = $fid ORDER BY displayorder");
+	while ($formfield = $vbulletin->db->fetch_array($formfields))
+	{
+		$optionselected = ($editingform['expirefield'] == $formfield['id']) ? 'selected="selected"' : '';
+		$optiontitle = $formfield['question'];
+		$optionvalue = $formfield['id'];
+		eval('$fieldbits .= "' . fetch_template('option') . '";');
+	}
+	
+	// Construct formbits
+	$formbits = $optionclass = '';
+	foreach ($allforms AS $singleform)
+	{
+		$optionselected = ($singleform['fid'] == $fid) ? 'selected="selected"' : '';
+		$optiontitle = $singleform['title'];
+		$optionvalue = $singleform['fid'];
+		eval('$formbits .= "' . fetch_template('option') . '";');
+	}
+	
+	// SMTP secure selected
+	$smtpselected = array('none' => '', 'ssl' => '', 'tsl' => '');
+	$smtpselected["$editingform[smtpsecure]"] = 'selected="selected"';
+	
+	// draw navbar
+	$navbits = array();
+	$navbits[''] = $vbphrase['forms'];
+	$navbits = construct_navbits($navbits);
+	eval('$navbar = "' . fetch_template('navbar') . '";');
+	
+	eval('print_output("' . fetch_template('form_fdw') . '");');
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title><![CDATA[EasyForm: "New Thread" integration]]></title>
+			<hookname>newthread_start</hookname>
+			<phpcode><![CDATA[if ($foruminfo['forumid'])
+{
+	if ($form = $db->query_first("SELECT fid FROM " . TABLE_PREFIX . "forms WHERE forumid = $foruminfo[forumid]"))
+	{
+		header("Location: misc.php?do=form&fid=$form[fid]");
+		exit();
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>EasyForm: Tagging</title>
+			<hookname>threadfpdata_postsave</hookname>
+			<phpcode><![CDATA[if (defined('THIS_SCRIPT') AND THIS_SCRIPT == 'misc' AND defined('FORM_TAGLIST'))
+{
+	require_once(DIR . '/includes/functions_newpost.php');
+	add_tags_to_thread($this->thread, FORM_TAGLIST);
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Scheduled Tasks" fieldname="cron">
+			<phrase name="task_fdweasyforms_desc" date="1302090335" username="Admin" version="2.0.0"><![CDATA[Process easy forms threads expiration]]></phrase>
+			<phrase name="task_fdweasyforms_log" date="1302090335" username="Admin" version="2.0.0"><![CDATA[Temas expirados: {1}]]></phrase>
+			<phrase name="task_fdweasyforms_title" date="1302090335" username="Admin" version="2.0.0"><![CDATA[Easy Forms Process]]></phrase>
+		</phrasetype>
+		<phrasetype name="FDW EasyForms Integration" fieldname="fdweasyforms">
+			<phrase name="email_avoid" date="1302013942" username="Admin" version="2.0.0"><![CDATA[No enviar si el usuario tiene configurado no recibir email de Administradores]]></phrase>
+			<phrase name="email_body" date="1302013913" username="Admin" version="2.0.0"><![CDATA[Mensaje]]></phrase>
+			<phrase name="email_from" date="1302013499" username="Admin" version="2.0.0"><![CDATA[Dirección de remitente]]></phrase>
+			<phrase name="email_subject" date="1302013897" username="Admin" version="2.0.0"><![CDATA[Título del email]]></phrase>
+			<phrase name="expiration_field" date="1302014291" username="Admin" version="2.0.0"><![CDATA[Expiración de tema]]></phrase>
+			<phrase name="expire_field" date="1302014530" username="Admin" version="2.0.0"><![CDATA[Especifique el campo que se tomará como tiempo de expiración]]></phrase>
+			<phrase name="expire_parse" date="1302014695" username="Admin" version="2.0.0"><![CDATA[Equivalencias en días para los valores del campo]]></phrase>
+			<phrase name="expire_parse_desc" date="1302014674" username="Admin" version="2.0.0"><![CDATA[<span style="font-style:italic">Especifique pares "clave|valor" separados por saltos de línea. Si deja esta opción en blanco, se toma directamente el valor del campo.</span>]]></phrase>
+			<phrase name="fdwform_edited_successfully" date="1302044749" username="Admin" version="2.0.0"><![CDATA[Configuraciones guardadas para el formulario]]></phrase>
+			<phrase name="invalid_email_template" date="1302053681" username="Admin" version="2.0.0"><![CDATA[Ocurrieron los siguientes errores al intentar procesar el mensaje del email:<br /><i>{1}</i><br />Esto puede ser causado por una condición mal formada.]]></phrase>
+			<phrase name="invalid_form" date="1302044167" username="Admin" version="2.0.0"><![CDATA[Formulario no válido]]></phrase>
+			<phrase name="no_valid_forms" date="0" username="Admin" version="2.0.0"><![CDATA[No se encontró ningún formulario personalizable.]]></phrase>
+			<phrase name="send_email" date="1302013125" username="Admin" version="2.0.0"><![CDATA[Enviar email al autor del tema]]></phrase>
+			<phrase name="smtp" date="1302015525" username="Admin" version="2.0.0"><![CDATA[SMTP]]></phrase>
+			<phrase name="smtp_host" date="1302015554" username="Admin" version="2.0.0"><![CDATA[Servidor SMTP]]></phrase>
+			<phrase name="smtp_pass" date="1302015577" username="Admin" version="2.0.0"><![CDATA[Contraseña SMTP]]></phrase>
+			<phrase name="smtp_secure" date="1302015624" username="Admin" version="2.0.0"><![CDATA[Protocolo de seguridad]]></phrase>
+			<phrase name="smtp_use" date="1302015606" username="Admin" version="2.0.0"><![CDATA[Usar cuenta SMTP personalizada (de lo contrario, se utiliza la configuración de email de vBulletin)]]></phrase>
+			<phrase name="smtp_user" date="1302015564" username="Admin" version="2.0.0"><![CDATA[Usuario SMTP]]></phrase>
+			<phrase name="smtp_port" date="1302015564" username="Admin" version="2.0.0"><![CDATA[Puerto SMTP]]></phrase>
+			<phrase name="ssl" date="1302015532" username="Admin" version="2.0.0"><![CDATA[SSL]]></phrase>
+			<phrase name="thread_close" date="1302015830" username="Admin" version="2.0.0"><![CDATA[Cerrar tema]]></phrase>
+			<phrase name="thread_match" date="1302016530" username="Admin" version="2.0.0"><![CDATA[Temas a los que se aplica]]></phrase>
+			<phrase name="thread_minreplyes" date="1302016661" username="Admin" version="2.0.0"><![CDATA[Mínimo de respuestas]]></phrase>
+			<phrase name="thread_minvotes" date="1302016744" username="Admin" version="2.0.0"><![CDATA[Mínimo de votos]]></phrase>
+			<phrase name="thread_minvotes_desc" date="1302016783" username="Admin" version="2.0.0"><![CDATA[<strong>NOTA:</strong> Sólo especifique si tiene instalado el producto fdw_vote]]></phrase>
+			<phrase name="thread_opened" date="1302016580" username="Admin" version="2.0.0"><![CDATA[Sólo temas abiertos y visibles]]></phrase>
+			<phrase name="thread_options" date="1302015750" username="Admin" version="2.0.0"><![CDATA[Acciones al tema]]></phrase>
+			<phrase name="tls" date="1302045052" username="Admin" version="2.0.0"><![CDATA[TLS]]></phrase>
+			<phrase name="unfilled_email_data" date="1302027882" username="Admin" version="2.0.0"><![CDATA[Por favor, rellene los datos necesarios para el email]]></phrase>
+			<phrase name="unfilled_smtp_data" date="1302028838" username="Admin" version="2.0.0"><![CDATA[Por favor, complete los datos del servidor SMTP]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+		<cron varname="fdweasyforms" active="1" loglevel="1">
+			<filename>./includes/cron/fdweasyforms.php</filename>
+			<scheduling weekday="-1" day="-1" hour="23" minute="30" />
+		</cron>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

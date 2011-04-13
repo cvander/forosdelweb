@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_social" active="1">
+	<title>Social share</title>
+	<description>Botones para compartir temas en redes sociales</description>
+	<version>1.0.2</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$vbulletin->db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwsocial (
+		fdwsocialid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		title VARCHAR(250) NOT NULL,
+		code MEDIUMTEXT NOT NULL,
+		parsed MEDIUMTEXT NOT NULL,
+		displayorder TINYINT NOT NULL,
+		active TINYINT NOT NULL,
+		PRIMARY KEY (fdwsocialid)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$vbulletin->db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwsocial");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="showthread_social" templatetype="template" date="1300285436" username="Admin" version="1.0.0"><![CDATA[<div class="tborder" style="width: 500px; margin: 0pt auto;">
+	<div style="padding: 10px" class="alt2">
+		<phrase 1="$vboptions[bbtitle]">$vbphrase[fdwshare_share]</phrase>
+		<p>$fdwsocialbuttons</p>
+	</div>
+</div>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Social: Cache template</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'showthread' AND $vbulletin->options['fdw_social_enable'])
+{
+	$globaltemplates[] = 'showthread_social';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Social: Datastore</title>
+			<hookname>init_startup</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'showthread' AND $vbulletin->options['fdw_social_enable'])
+{
+	$datastore_fetch[] = "'fdwsocial'";
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="20">
+			<title>FDW Social: Set cookie</title>
+			<hookname>newthread_post_complete</hookname>
+			<phpcode><![CDATA[if
+(
+	$vbulletin->options['fdw_social_enable'] AND $newpost['visible']
+	AND strlen($newpost['message']) > $vbulletin->options['fdw_social_length']
+	AND 
+	(
+		!$vbulletin->options['fdw_social_public']
+		OR
+		(
+			($foruminfo['permissions'][1] & $vbulletin->bf_ugp_forumpermissions['canview'])
+			AND ($foruminfo['permissions'][1] & $vbulletin->bf_ugp_forumpermissions['canviewthreads'])
+			AND ($foruminfo['permissions'][1] & $vbulletin->bf_ugp_forumpermissions['canviewothers'])
+		)
+	)
+)
+{
+	setcookie('vbulletin_fdwsocial', $newpost['threadid'], TIMENOW + 3600, '/');
+	if (!$newpost['postpoll'] AND ($forumperms & $vbulletin->bf_ugp_forumpermissions['canviewthreads']))
+	{
+		$vbulletin->url = 'showthread.php?' . $vbulletin->session->vars['sessionurl'] . "t=$newpost[threadid]";
+		eval(print_standard_redirect('redirect_postthanks'));
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Social: Display buttons</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_social_enable'])
+{
+	$socialthread = $vbulletin->input->clean_gpc('c', 'vbulletin_fdwsocial', TYPE_UINT);
+	if ($threadinfo['threadid'] == $socialthread AND is_array($vbulletin->fdwsocial))
+	{
+		setcookie('vbulletin_fdwsocial', '', TIMENOW - 3600, '/');
+		$threadinfo['threadurl'] = urlencode(create_full_url("showthread.php?t=$threadinfo[threadid]"));
+		
+		$fdwsocialbuttons = '';
+		foreach ($vbulletin->fdwsocial AS $socialbutton)
+		{
+			eval('$fdwsocialbuttons .= "' . $socialbutton . '";');
+		}
+		
+		eval('$threadinfo[\'socialbuttons\'] = "' . fetch_template('showthread_social') . '";');
+		if ($vbulletin->options['fdw_social_template'])
+		{
+			$poll .= $threadinfo['socialbuttons'];
+		}
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Control Panel Global" fieldname="cpglobal">
+			<phrase name="add_new_fdwsocial" date="1300302658" username="Admin" version="1.0.0"><![CDATA[Agregar botón]]></phrase>
+			<phrase name="are_you_sure_want_to_delete_fdwsocial_x" date="1302655500" username="Admin" version="1.0.2"><![CDATA[¿Está seguro de que desea eliminar permanentemente el botón social <em>{1}</em>?<br /><span class="smallfont">({2}={3})</span><br />
+<br />
+Esta acción no puede ser revertida.]]></phrase>
+			<phrase name="fdwsocial_edit" date="1300304579" username="Admin" version="1.0.0"><![CDATA[Editar botón social]]></phrase>
+			<phrase name="fdwsocial_manager" date="1300303450" username="Admin" version="1.0.0"><![CDATA[Gestor de botones sociales]]></phrase>
+			<phrase name="fdwsocial_save_status" date="1300303646" username="Admin" version="1.0.0"><![CDATA[Save Active Status]]></phrase>
+			<phrase name="fdwsocial_title" date="1302655252" username="Admin" version="1.0.2"><![CDATA[Botones sociales]]></phrase>
+		</phrasetype>
+		<phrasetype name="Control Panel Home Pages" fieldname="cphome">
+			<phrase name="fdw_social_cpaddnew" date="1300301664" username="Admin" version="1.0.0"><![CDATA[Agregar botón]]></phrase>
+			<phrase name="fdw_social_cpconfig" date="1300301727" username="Admin" version="1.0.0"><![CDATA[Configuración]]></phrase>
+			<phrase name="fdw_social_cpgroup" date="1300301636" username="Admin" version="1.0.0"><![CDATA[Botones sociales]]></phrase>
+			<phrase name="fdw_social_cpmanager" date="1300301698" username="Admin" version="1.0.0"><![CDATA[Gestionar botones]]></phrase>
+		</phrasetype>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="deleted_fdwsocial_successfully" date="1300302564" username="Admin" version="1.0.0"><![CDATA[Botón social eliminado]]></phrase>
+		</phrasetype>
+		<phrasetype name="Show Thread" fieldname="showthread">
+			<phrase name="fdwshare_share" date="1300285254" username="Admin" version="1.0.0"><![CDATA[<p>Gracias por publicar tu consulta en {1}.</p>
+<p>Para arrancar la discusión lo antes posible, te invitamos a que compartas con tus amigos este mensaje.</p>]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_social_enable_desc" date="1300284791" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar botones para compartir en redes sociales]]></phrase>
+			<phrase name="setting_fdw_social_enable_title" date="1300284791" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="setting_fdw_social_length_desc" date="1300292685" username="Admin" version="1.0.0"><![CDATA[Mínimo de caracteres en el mensaje para mostrar los botones]]></phrase>
+			<phrase name="setting_fdw_social_length_title" date="1300292685" username="Admin" version="1.0.0"><![CDATA[Mínimo de caracteres]]></phrase>
+			<phrase name="setting_fdw_social_public_desc" date="1300284856" username="Admin" version="1.0.0"><![CDATA[Mostrar sólo en foros públicos]]></phrase>
+			<phrase name="setting_fdw_social_public_title" date="1300284856" username="Admin" version="1.0.0"><![CDATA[Foros públicos]]></phrase>
+			<phrase name="setting_fdw_social_template_desc" date="1300284907" username="Admin" version="1.0.0"><![CDATA[Añadir automáticamente a la plantilla SHOWTHREAD]]></phrase>
+			<phrase name="setting_fdw_social_template_title" date="1300284907" username="Admin" version="1.0.0"><![CDATA[Plantillas]]></phrase>
+			<phrase name="settinggroup_fdw_social_setup" date="1300284778" username="Admin" version="1.0.0"><![CDATA[Social share]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_social_setup" displayorder="620">
+			<setting varname="fdw_social_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_social_public" displayorder="20">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_social_template" displayorder="30">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_social_length" displayorder="40">
+				<datatype>integer</datatype>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

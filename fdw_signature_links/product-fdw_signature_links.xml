@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_signature_links" active="1">
+	<title>Firma</title>
+	<description>Opciones adicionales para las firmas de usuario</description>
+	<version>1.5.1</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>Signature bypass</title>
+			<hookname>cache_permissions</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_signature_bypass'] AND $vbulletin->userinfo['userid']
+		AND $vbulletin->userinfo['userid'] == $user['userid'] AND defined('THIS_SCRIPT')
+		AND !($user['permissions']['genericpermissions'] & $vbulletin->bf_ugp_genericpermissions['canusesignature']))
+{
+	$user['permissions']['genericpermissions'] |= $vbulletin->bf_ugp_genericpermissions['canusesignature'];
+	
+	$fdwsignaturegroup =& $vbulletin->usergroupcache[$vbulletin->options['fdw_signature_groupbase']];
+	$user['permissions']['sigmaxrawchars'] = $fdwsignaturegroup['sigmaxrawchars'];
+	$user['permissions']['sigmaxchars'] = $fdwsignaturegroup['sigmaxchars'];
+	$user['permissions']['sigmaxlines'] = $fdwsignaturegroup['sigmaxlines'];
+	$user['permissions']['sigmaxsizebbcode'] = $fdwsignaturegroup['sigmaxsizebbcode'];
+	$user['permissions']['sigmaximages'] = $fdwsignaturegroup['sigmaximages'];
+	$user['permissions']['signaturepermissions'] = $fdwsignaturegroup['signaturepermissions'];
+
+	if ($user['permissions']['signaturepermissions'] & $vbulletin->bf_ugp_signaturepermissions['cansigpic'])
+	{
+		$user['permissions']['sigpicmaxwidth'] = $fdwsignaturegroup['sigpicmaxwidth'];
+		$user['permissions']['sigpicmaxheight'] = $fdwsignaturegroup['sigpicmaxheight'];
+		$user['permissions']['sigpicmaxsize'] = $fdwsignaturegroup['sigpicmaxsize'];
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Signature Edit</title>
+			<hookname>profile_updatesignature_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_signature_enable'])
+{
+	if (substr_count(strtolower($signature), '[/url]') > $vbulletin->options['fdw_signature_num'])
+	{
+		$errors[] = construct_phrase($vbphrase['fdw_signature_error'], $vbulletin->options['fdw_signature_num']);
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Permissions" fieldname="cppermission">
+			<phrase name="fdw_signature_error" date="1269573521" username="Admin" version="1.0.0"><![CDATA[La firma sólo puede contener hasta {1} enlaces.]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_signature_bypass_desc" date="1299773678" username="Admin" version="1.5.0"><![CDATA[Permitir que los usuarios cuya firma está restringida editen su firma y la vean cuando inicien sesión]]></phrase>
+			<phrase name="setting_fdw_signature_bypass_title" date="1299773678" username="Admin" version="1.5.0"><![CDATA[Restricciones de grupo de usuario]]></phrase>
+			<phrase name="setting_fdw_signature_enable_desc" date="1299773601" username="Admin" version="1.5.0"><![CDATA[Activar/Desactivar restricción de enlaces en firma]]></phrase>
+			<phrase name="setting_fdw_signature_enable_title" date="1299773601" username="Admin" version="1.5.0"><![CDATA[Activar]]></phrase>
+			<phrase name="setting_fdw_signature_groupbase_desc" date="1299781017" username="Admin" version="1.5.1"><![CDATA[Grupo de usuarios que se tomará como base para las restricciones de la firma]]></phrase>
+			<phrase name="setting_fdw_signature_groupbase_title" date="1299781017" username="Admin" version="1.5.1"><![CDATA[Grupo de usuario]]></phrase>
+			<phrase name="setting_fdw_signature_num_desc" date="1299773601" username="Admin" version="1.5.0"><![CDATA[Número de enlaces permitidos al editar firma]]></phrase>
+			<phrase name="setting_fdw_signature_num_title" date="1299773601" username="Admin" version="1.5.0"><![CDATA[Número de enlaces]]></phrase>
+			<phrase name="settinggroup_fdw_signature_opt" date="1299773601" username="Admin" version="1.5.0"><![CDATA[Firmas]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_signature_opt" displayorder="590">
+			<setting varname="fdw_signature_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_signature_num" displayorder="20">
+				<datatype>posint</datatype>
+				<defaultvalue>2</defaultvalue>
+			</setting>
+			<setting varname="fdw_signature_bypass" displayorder="30">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_signature_groupbase" displayorder="40">
+				<datatype>integer</datatype>
+				<optioncode>usergroup</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

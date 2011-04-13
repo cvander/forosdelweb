@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="usergroup_linkrestriction" active="1">
+	<title>Deshabilitar enlaces</title>
+	<description>Deshabilitar la posibilidad de incluir enlaces según el grupo de usuarios</description>
+	<version>1.0.1</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->hide_errors();
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "usergroup ADD COLUMN bbcode_url_permissions SMALLINT UNSIGNED NOT NULL DEFAULT '63'");
+$db->show_errors();]]></installcode>
+			<uninstallcode><![CDATA[$db->hide_errors();
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "usergroup DROP COLUMN bbcode_url_permissions");
+$db->show_errors();]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>Permisos de enlaces</title>
+			<hookname>admin_usergroup_edit</hookname>
+			<phpcode><![CDATA[print_table_header($vbphrase['bbcode_url_permissions']);
+print_yes_no_row($vbphrase['can_bbcode_url_posts'], 'bbcode_url_[posts]', ($usergroup['bbcode_url_permissions'] & 1) ? '1' : '0');
+print_yes_no_row($vbphrase['can_bbcode_url_newthread'], 'bbcode_url_[newthread]', ($usergroup['bbcode_url_permissions'] & 2) ? '1' : '0');
+print_yes_no_row($vbphrase['can_bbcode_url_pm'], 'bbcode_url_[pm]', ($usergroup['bbcode_url_permissions'] & 4) ? '1' : '0');
+print_yes_no_row($vbphrase['can_bbcode_url_vm'], 'bbcode_url_[vm]', ($usergroup['bbcode_url_permissions'] & 8) ? '1' : '0');
+print_yes_no_row($vbphrase['can_bbcode_url_gm'], 'bbcode_url_[gm]', ($usergroup['bbcode_url_permissions'] & 16) ? '1' : '0');
+print_yes_no_row($vbphrase['can_bbcode_url_autoparse'], 'bbcode_url_[autoparse]', ($usergroup['bbcode_url_permissions'] & 32) ? '1' : '0');
+print_table_break();
+print_column_style_code(array('width: 70%', 'width: 30%'));]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Permisos de enlaces (Guardar)</title>
+			<hookname>admin_usergroup_save</hookname>
+			<phpcode><![CDATA[$vbulletin->input->clean_array_gpc('p', array(
+	'bbcode_url_' => TYPE_ARRAY
+));
+$bbcode_url_values = array(
+	'posts'     => 1,
+	'newthread' => 2,
+	'pm'        => 4,
+	'vm'        => 8,
+	'gm'        => 16,
+	'autoparse' => 32
+);
+$bbcode_url_save = 0;
+foreach ($vbulletin->GPC['bbcode_url_'] AS $key => $value)
+{
+	if (intval($value))
+	{
+		$bbcode_url_save |= $bbcode_url_values[$key];
+	}
+}
+$vbulletin->GPC['usergroup']['bbcode_url_permissions'] = $bbcode_url_save;]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>BBCode URL Functions</title>
+			<hookname>bbcode_url_functions</hookname>
+			<phpcode><![CDATA[// IMPORTANT: Require set $temptablename variable before eval() this hook
+			
+if (empty($this->info['is_automated']))
+{
+	// Fix new thread tags bug
+	if (!function_exists('add_noparse_bbcode'))
+	{
+		function add_noparse_bbcode_callback($text, $prepend, $bbcodes)
+		{
+			$text = str_replace('\"', '"', $text);
+			$prepend = str_replace('\"', '"', $prepend);
+			
+			$text = preg_replace('#(\[(' . $bbcodes . ').*\].*\[/\\2\])#siU', '[noparse]\\1[/noparse]', $text);
+			return $prepend . $text;
+		}
+
+		function add_noparse_bbcode($text, $bbcodes)
+		{
+			return preg_replace(
+				'#(^|\[/noparse\])(.*(?:\[noparse|$))#siUe',
+				"add_noparse_bbcode_callback('\\2', '\\1', '$bbcodes')",
+				$text
+			);
+		}
+	}
+
+	$tempfieldname = ($temptablename == 'pmtext') ? 'message' : 'pagetext';
+	$temppagetext = $this->fetch_field($tempfieldname, $temptablename);
+	if ($temppagetext !== null)
+	{
+		$temppagetext = add_noparse_bbcode($temppagetext, 'url|email');
+		$this->setr($tempfieldname, $temppagetext);
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar URL a BBCode (Editor)</title>
+			<hookname>editor_toolbar_end</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 32))
+{
+	$checked['parseurl'] = 'disabled="disabled"';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar BBCode URL (Group Message)</title>
+			<hookname>groupmessagedata_presave</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 16))
+{
+	$temptablename = 'groupmessage';
+	($hook = vBulletinHook::fetch_hook('bbcode_url_functions')) ? eval($hook) : false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar BBCode URL (Private Message)</title>
+			<hookname>pmdata_presave</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 4))
+{
+	$temptablename = 'pmtext';
+	($hook = vBulletinHook::fetch_hook('bbcode_url_functions')) ? eval($hook) : false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar BBCode URL (Posts)</title>
+			<hookname>postdata_presave</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 1))
+{
+	$temptablename = 'post';
+	($hook = vBulletinHook::fetch_hook('bbcode_url_functions')) ? eval($hook) : false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar BBCode URL (New Thread)</title>
+			<hookname>threadfpdata_presave</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 2))
+{
+	$temptablename = 'post';
+	($hook = vBulletinHook::fetch_hook('bbcode_url_functions')) ? eval($hook) : false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar URL a BBCode</title>
+			<hookname>url_to_bbcode</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 32))
+{
+	$skiptaglist = '?:' . $skiptaglist . ')\].*\[(?:' . $skiptaglist . '))#siUe' . chr(0);
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deshabilitar BBCode URL (Visitor Message)</title>
+			<hookname>visitormessagedata_presave</hookname>
+			<phpcode><![CDATA[if (!($GLOBALS['vbulletin']->userinfo['permissions']['bbcode_url_permissions'] & 8))
+{
+	$temptablename = 'visitormessage';
+	($hook = vBulletinHook::fetch_hook('bbcode_url_functions')) ? eval($hook) : false;
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Permissions" fieldname="cppermission">
+			<phrase name="bbcode_url_permissions" date="1258429865" username="Admin" version="1.0.0"><![CDATA[Permisos de Enlaces]]></phrase>
+			<phrase name="can_bbcode_url_autoparse" date="1258430449" username="Admin" version="1.0.0"><![CDATA[Permitir 'Convertir URLs automáticamente en enlaces']]></phrase>
+			<phrase name="can_bbcode_url_gm" date="1258430073" username="Admin" version="1.0.0"><![CDATA[Permitir enlaces en mensajes de grupo social]]></phrase>
+			<phrase name="can_bbcode_url_newthread" date="1258429967" username="Admin" version="1.0.0"><![CDATA[Permitir enlaces en nuevos temas]]></phrase>
+			<phrase name="can_bbcode_url_pm" date="1258429996" username="Admin" version="1.0.0"><![CDATA[Permitir enlaces en mensajes privados]]></phrase>
+			<phrase name="can_bbcode_url_posts" date="1258429940" username="Admin" version="1.0.0"><![CDATA[Permitir enlaces en respuestas a temas]]></phrase>
+			<phrase name="can_bbcode_url_vm" date="1258430017" username="Admin" version="1.0.0"><![CDATA[Permitir enlaces en mensajes de visita]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

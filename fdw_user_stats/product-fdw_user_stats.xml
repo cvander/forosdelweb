@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_user_stats" active="1">
+	<title>Estadísticas de usuario</title>
+	<description>Estadísticas de comportamiento por usuario</description>
+	<version>1.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwvisits (
+		userid INT UNSIGNED NOT NULL,
+		forumid INT UNSIGNED NOT NULL,
+		threadid INT UNSIGNED
+	)
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwuserstats (
+		id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		userid INT UNSIGNED NOT NULL,
+		forumid INT UNSIGNED NOT NULL,
+		views INT UNSIGNED NOT NULL,
+		threadviews INT UNSIGNED NOT NULL,
+		stattime DATE NOT NULL,
+		PRIMARY KEY (id),
+		UNIQUE (userid, forumid, stattime)
+	)
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwstatthreads (
+		statid INT UNSIGNED NOT NULL,
+		threadid INT UNSIGNED NOT NULL,
+		UNIQUE (statid, threadid)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwvisits");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwuserstats");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwstatthreads");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Stats: Cron</title>
+			<hookname>cron_script_cleanup_hourly</hookname>
+			<phpcode><![CDATA[$temptable = "fdwvisits_$nextitem[nextrun]";
+$vbulletin->db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "$temptable (
+		userid INT UNSIGNED NOT NULL,
+		forumid INT UNSIGNED NOT NULL,
+		tempviews INT UNSIGNED NOT NULL,
+		tempthreadviews INT UNSIGNED NOT NULL
+	) ENGINE = MEMORY
+");
+
+$vbulletin->db->query_write("
+	INSERT INTO " . TABLE_PREFIX . "$temptable (userid, forumid, tempviews, tempthreadviews)
+		SELECT userid, forumid, COUNT(forumid) - COUNT(threadid), COUNT(threadid)
+		FROM " . TABLE_PREFIX . "fdwvisits
+		GROUP BY userid, forumid
+");
+
+if (!$vbulletin->options['fdw_stats_threads'])
+{
+	$vbulletin->db->query_write("TRUNCATE TABLE " . TABLE_PREFIX . "fdwvisits");
+}
+
+$vbulletin->db->query_write("
+	INSERT INTO " . TABLE_PREFIX . "fdwuserstats (userid, forumid, views, threadviews, stattime)
+		SELECT userid, forumid, tempviews, tempthreadviews, FROM_UNIXTIME(" . TIMENOW . ")
+		FROM " . TABLE_PREFIX . "$temptable
+	ON DUPLICATE KEY UPDATE
+		views = views + tempviews,
+		threadviews = threadviews + tempthreadviews
+");
+
+$vbulletin->db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . $temptable);
+
+if ($vbulletin->options['fdw_stats_threads'])
+{
+	$vbulletin->db->query_write("
+		INSERT IGNORE INTO " . TABLE_PREFIX . "fdwstatthreads (statid, threadid)
+			SELECT stats.id, visits.threadid
+			FROM " . TABLE_PREFIX . "fdwvisits AS visits
+			INNER JOIN " . TABLE_PREFIX . "fdwuserstats AS stats
+			ON
+				stats.userid = visits.userid AND
+				stats.forumid = visits.forumid AND
+				stats.stattime = DATE(FROM_UNIXTIME(" . TIMENOW . "))
+			WHERE visits.threadid IS NOT NULL
+			GROUP BY visits.threadid
+	");
+	$vbulletin->db->query_write("TRUNCATE TABLE " . TABLE_PREFIX . "fdwvisits");
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Stats: Forum views</title>
+			<hookname>forumdisplay_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_stats_active'] AND $vbulletin->userinfo['userid'])
+{
+	if (is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_stats_groups'])))
+	{
+		$db->shutdown_query("
+			INSERT INTO " . TABLE_PREFIX . "fdwvisits (userid, forumid)
+			VALUES ({$vbulletin->userinfo['userid']}, $foruminfo[forumid])
+		");
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Stats: Thread views</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_stats_active'] AND $vbulletin->userinfo['userid'])
+{
+	if (is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_stats_groups'])))
+	{
+		$db->shutdown_query("
+			INSERT INTO " . TABLE_PREFIX . "fdwvisits (userid, forumid, threadid)
+			VALUES ({$vbulletin->userinfo['userid']}, $foruminfo[forumid], $threadinfo[threadid])
+		");
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Control Panel Home Pages" fieldname="cphome">
+			<phrase name="fdw_stats_cpconfig" date="1282359091" username="Admin" version="1.0.0"><![CDATA[Configuración]]></phrase>
+			<phrase name="fdw_stats_cpgroup" date="1282358961" username="Admin" version="1.0.0"><![CDATA[Estadísticas de usuario]]></phrase>
+			<phrase name="fdw_stats_cpview" date="1282359185" username="Admin" version="1.0.0"><![CDATA[Ver estadísticas]]></phrase>
+		</phrasetype>
+		<phrasetype name="FDW Stats" fieldname="fdwstats">
+			<phrase name="forummost" date="1283648452" username="Admin" version="1.0.0"><![CDATA[Foro más visitado]]></phrase>
+			<phrase name="forumvisits" date="1283569567" username="Admin" version="1.0.0"><![CDATA[Visitas a portada]]></phrase>
+			<phrase name="metric_by" date="1283569536" username="Admin" version="1.0.0"><![CDATA[Medir por]]></phrase>
+			<phrase name="show_by" date="1283569279" username="Admin" version="1.0.0"><![CDATA[Mostrar por]]></phrase>
+			<phrase name="threadvisits" date="1283569582" username="Admin" version="1.0.0"><![CDATA[Visitas a temas]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_stats_active_desc" date="1282278881" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar estadísticas individuales de usuario]]></phrase>
+			<phrase name="setting_fdw_stats_active_title" date="1282278881" username="Admin" version="1.0.0"><![CDATA[Activar]]></phrase>
+			<phrase name="setting_fdw_stats_groups_desc" date="1282279022" username="Admin" version="1.0.0"><![CDATA[Grupos de usuarios cuyas estadísticas serán almacenadas]]></phrase>
+			<phrase name="setting_fdw_stats_groups_title" date="1282279022" username="Admin" version="1.0.0"><![CDATA[Grupos de usuario]]></phrase>
+			<phrase name="setting_fdw_stats_threads_desc" date="1282279118" username="Admin" version="1.0.0"><![CDATA[Almacenar qué temas específicamente fueron visitados.<br /><br /><strong>Advertencia:</strong> Activar esta opción puede aumentar considerablemente la carga del servidor.]]></phrase>
+			<phrase name="setting_fdw_stats_threads_title" date="1282279118" username="Admin" version="1.0.0"><![CDATA[Almacenar temas visitados]]></phrase>
+			<phrase name="settinggroup_fdw_stats_options" date="1282278816" username="Admin" version="1.0.0"><![CDATA[Estadísticas de usuario]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_stats_options" displayorder="610">
+			<setting varname="fdw_stats_active" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_stats_groups" displayorder="20">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_stats_threads" displayorder="30">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

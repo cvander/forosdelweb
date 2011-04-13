@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_forum" active="1">
+	<title>Personalización de foros</title>
+	<description>Estilos personalizados por foro</description>
+	<version>1.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwforumcustom (
+		fdwforumcustomid INT UNSIGNED NOT NULL AUTO_INCREMENT,
+		title VARCHAR(250) NOT NULL,
+		forumid INT UNSIGNED NOT NULL,
+		styles VARCHAR(250) NOT NULL,
+		styleid INT UNSIGNED NOT NULL,
+		active TINYINT NOT NULL,
+		PRIMARY KEY (fdwforumcustomid)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwforumcustom");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDWForumCustom: Datastore</title>
+			<hookname>init_startup</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_forum_enable'])
+{
+	$datastore_fetch[] = "'fdwforumcustom'";
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWForumCustom: Replace style</title>
+			<hookname>style_fetch</hookname>
+			<phpcode><![CDATA[if (is_array($vbulletin->fdwforumcustom) AND $foruminfo['forumid'] AND is_array($vbulletin->fdwforumcustom["$foruminfo[forumid]"]))
+{
+	if (in_array($styleid, $vbulletin->fdwforumcustom["$foruminfo[forumid]"]['styles']))
+	{
+		$style = $db->query_first_slave("
+			SELECT *
+			FROM " . TABLE_PREFIX . "style
+			WHERE styleid = {$vbulletin->fdwforumcustom["$foruminfo[forumid]"]['styleid']}
+			LIMIT 1
+		");
+		if (is_array($style))
+		{
+			$style['styleid'] = $styleid;
+		}
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Control Panel Global" fieldname="cpglobal">
+			<phrase name="add_new_fdwforum" date="1301960227" username="Admin" version="1.0.0"><![CDATA[Agregar personalización]]></phrase>
+			<phrase name="are_you_sure_want_to_delete_fdwforumcustom_x" date="1301963833" username="Admin" version="1.0.0"><![CDATA[¿Está seguro de que desea eliminar permanentemente la personalización <em>{1}</em>?<br /><span class="smallfont">({2}={3})</span><br />
+<br />
+Esta acción no puede ser revertida.]]></phrase>
+			<phrase name="fdwforum_edit" date="1301962580" username="Admin" version="1.0.0"><![CDATA[Editar personalización ]]></phrase>
+			<phrase name="fdwforum_manager" date="1301960154" username="Admin" version="1.0.0"><![CDATA[Gestor de personalizaciones]]></phrase>
+			<phrase name="fdwforum_save_status" date="1301960205" username="Admin" version="1.0.0"><![CDATA[Save status]]></phrase>
+			<phrase name="fdwforum_title" date="1301959763" username="Admin" version="1.0.0"><![CDATA[Personalizaciones de foros]]></phrase>
+		</phrasetype>
+		<phrasetype name="Control Panel Home Pages" fieldname="cphome">
+			<phrase name="fdw_forum_cpaddnew" date="1301954161" username="Admin" version="1.0.0"><![CDATA[Agregar personalización]]></phrase>
+			<phrase name="fdw_forum_cpconfig" date="1301954177" username="Admin" version="1.0.0"><![CDATA[Opciones]]></phrase>
+			<phrase name="fdw_forum_cpgroup" date="1301953317" username="Admin" version="1.0.0"><![CDATA[Personalización de foros]]></phrase>
+			<phrase name="fdw_forum_cpmanager" date="1301954143" username="Admin" version="1.0.0"><![CDATA[Gestionar personalizaciones]]></phrase>
+		</phrasetype>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="deleted_fdwforum_successfully" date="1301959882" username="Admin" version="1.0.0"><![CDATA[Personalización eliminada]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_forum_enable_desc" date="1301955535" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar personalizaciones de foros]]></phrase>
+			<phrase name="setting_fdw_forum_enable_title" date="1301955535" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="settinggroup_fdw_forum_setup" date="1301954483" username="Admin" version="1.0.0"><![CDATA[Personalización de foros]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_forum_setup" displayorder="640">
+			<setting varname="fdw_forum_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

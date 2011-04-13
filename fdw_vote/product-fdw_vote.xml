@@ -1,0 +1,1203 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_vote" active="1">
+	<title>Puntuación de temas</title>
+	<description>Sistema de puntuación de temas basado en positivo/negativo</description>
+	<version>2.3.9.6</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.2" maxversion="" />
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "forum ADD votefdw SMALLINT NOT NULL DEFAULT '1'");
+$db->query_write("
+	ALTER TABLE " . TABLE_PREFIX . "thread
+	ADD votepos SMALLINT NOT NULL,
+	ADD voteneg SMALLINT NOT NULL
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwvote (
+		voteid INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+		threadid INT UNSIGNED NOT NULL,
+		userid INT UNSIGNED NOT NULL,
+		vote SMALLINT UNSIGNED NOT NULL
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "forum DROP votefdw");
+$db->query_write("
+	ALTER TABLE " . TABLE_PREFIX . "thread
+	DROP votepos,
+	DROP voteneg
+");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwvote");]]></uninstallcode>
+		</code>
+		<code version="1.0.1">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "fdwvote ADD votedate INT UNSIGNED NOT NULL");]]></installcode>
+			<uninstallcode />
+		</code>
+		<code version="2.0.0">
+			<installcode><![CDATA[$db->query_write("
+	ALTER TABLE " . TABLE_PREFIX . "post
+	ADD votepos SMALLINT NOT NULL DEFAULT '0',
+	ADD voteneg SMALLINT NOT NULL DEFAULT '0'
+");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "reputation ADD fdwtype TINYINT NOT NULL DEFAULT '0'");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("
+	ALTER TABLE " . TABLE_PREFIX . "post
+	DROP votepos,
+	DROP voteneg
+");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "reputation DROP fdwtype");]]></uninstallcode>
+		</code>
+		<code version="2.3.7">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "fdwvote ADD UNIQUE KEY (threadid, userid)");]]></installcode>
+			<uninstallcode />
+		</code>
+		<code version="2.3.9">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "reputation ADD button TINYINT NOT NULL DEFAULT '0'");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "reputation DROP button");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="postbit_reputation_fdw" templatetype="template" date="1300889439" username="Admin" version="2.3.9"><![CDATA[<if condition="$show['fdwreputationlink']"><div style="float:right;margin-left:4px">
+	<if condition="$show['fdwreputationbuttons']"><div style="float:left">
+		<span id="fdwvotepos_$post[postid]" style="display:block;height:13px">
+			<a href="reputation.php?$session[sessionurl]p=$post[postid]"><img src="$stylevar[imgdir_button]/up.png" alt="<phrase 1="$post[username]">$vbphrase[add_to_xs_reputation]</phrase>" border="0" /></a>
+		</span>
+		<span id="fdwvoteneg_$post[postid]">
+			<a href="reputation.php?$session[sessionurl]p=$post[postid]"><img src="$stylevar[imgdir_button]/down.png" alt="<phrase 1="$post[username]">$vbphrase[add_to_xs_reputation]</phrase>" border="0" /></a>
+		</span>
+	</div></if>
+	<div>
+		<if condition="$show['reputationwho']"><span id="fdwposvotes_$post[postid]" class="smallfont"<if condition="!$show['fdwreputationbuttons']"> style="display:block"</if>>+<a style="color:Green;text-decoration:none" href="reputation.php?$session[sessionurl]p=$post[postid]&do=whovoted&reputation=pos" id="fdwvotedisplay_pos_$post[postid]">$post[votepos]</a></span><else /><span style="color:Green;text-decoration:none;<if condition="!$show['fdwreputationbuttons']">display:block;</if>" class="smallfont">+<span id="fdwvotedisplay_pos_$post[postid]">$post[votepos]</span></span></if>
+		<if condition="$show['reputationwho']"><span id="fdwnegvotes_$post[postid]" class="smallfont">-<a style="color:Red;text-decoration:none" href="reputation.php?$session[sessionurl]p=$post[postid]&do=whovoted&reputation=neg" id="fdwvotedisplay_neg_$post[postid]">$post[voteneg]</a></span><else /><span style="color:Red;text-decoration:none" class="smallfont">-<span id="fdwvotedisplay_neg_$post[postid]">$post[voteneg]</span></span></if>
+	</div>
+</div></if>]]></template>
+		<template name="postbit_reputation_fdw_text" templatetype="template" date="1301047303" username="Admin" version="2.3.9.5"><![CDATA[<if condition="$show['fdwreputationlink'] AND $show['fdwreputationbuttons']"><div class="smallfont" style="text-align:left;float:left"><a href="reputation.php?$session[sessionurl]p=$post[postid]" id="fdwvotepos_like_$post[postid]">$vbphrase[fdw_postbit_like]</a> / <a href="reputation.php?$session[sessionurl]p=$post[postid]" id="fdwvoteneg_like_$post[postid]">$vbphrase[fdw_postbit_no_like]</a></div></div></if><if condition="$show['fdwreputationlink'] AND ($show['reputationbuttons'] OR $show['reputationwho'])"><script type="text/javascript">vbrep_register($post[postid]);</script></if>]]></template>
+		<template name="reputationbit_fdw" templatetype="template" date="1300890237" username="Admin" version="2.3.9"><![CDATA[<if condition="$show['iapprove']">
+$vbphrase[fdw_rep_pos] <a href="reputation.php?p=$postid" onclick="document.getElementById('repcomment_{$fdwtype}_$postid').style.display='block';">$vbphrase[fdw_add_comment]</a>
+<else />
+$vbphrase[fdw_rep_neg]
+</if>
+<div id="repcomment_{$fdwtype}_$postid"<if condition="$show['iapprove']"> style="display:none"</if>><input type="text" class="bginput" size="40" maxlength="250" id="fdwvote{$fdwtype}_reason_$postid" onkeypress="vBrep['fdwvote{$fdwtype}_$postid'].keyHandler(event)" /><input style="float:right" type="button" class="button" value="$vbphrase[okay]" onclick="vBrep['fdwvote{$fdwtype}_$postid'].submit()" /></div>]]></template>
+		<template name="reputationbit_wrapper" templatetype="template" date="1299601962" username="Admin" version="2.1.0"><![CDATA[<tr>
+	<td class="panelsurround" align="center">
+		<div class="panel">
+			<div align="$stylevar[left]">
+				$reputationmessage
+			</div>
+		</div>
+	</td>
+</tr>]]></template>
+		<template name="reputation_votedbit" templatetype="template" date="1298691587" username="Admin" version="2.0.0"><![CDATA[<if condition="!$show['is_first']">, </if><a href="member.php?$session[sessionurl]u=$uservoted[userid]">$uservoted[username]</a>]]></template>
+		<template name="showthread_votefdw" templatetype="template" date="1268871657" username="Admin" version="1.0.0"><![CDATA[<if condition="$show['fdwvote_wrapper']"><div id="fdwvote_$threadinfo[threadid]" class="tborder" style="width: 500px; margin: 0pt auto;<if condition="!$show['fdwvote_pos'] AND !$show['fdwvote_neg']">display:none"</if>">
+	<div id="fdwvote_$threadinfo[threadid]_i" style="padding: 10px" class="alt2"></if>
+		<if condition="$show['fdwvote_pos']"><span style="padding: 0; display: block"><img src="images/misc/tick.png" alt="$vbphrase[yes]" style="margin-right: 5px;" /><phrase 1="$threadinfo[votepos]">$vbphrase[fdwvote_x_like]</phrase><if condition="$show['fdwvote_upos']"> $vbphrase[fdwvote_include]</if></span></if>
+		<if condition="$show['fdwvote_neg']"><span style="padding: 0"><img src="images/misc/cross.png" alt="$vbphrase[no]" style="margin-right: 5px;" /><phrase 1="$threadinfo[voteneg]">$vbphrase[fdwvote_x_nolike]</phrase><if condition="$show['fdwvote_uneg']"> $vbphrase[fdwvote_include]</if></span></if>
+	<if condition="$show['fdwvote_wrapper']"></div>
+</div></if>]]></template>
+		<template name="showthread_votefdw_form" templatetype="template" date="1299873051" username="Admin" version="2.3.0"><![CDATA[<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_thread_rate.js"></script>
+<div id="fdwvote_form_$threadinfo[threadid]" class="tborder" style="width: 500px; margin: 5px auto 0 auto;">
+	<div id="fdwvote_form_$threadinfo[threadid]_i" style="padding: 10px; text-align: center;" class="alt2">
+		<form action="misc.php?do=vote&amp;t=$threadinfo[threadid]" method="post" onsubmit="fdwRate.doRate(this);return false;">
+			<span>$vbphrase[fdwvote_like]</span>
+			<input type="hidden" value="vote" name="do">
+			<input type="hidden" name="s" value="$session[sessionhash]" />
+			<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+			<input type="hidden" name="t" value="$threadinfo[threadid]" />
+			<input type="hidden" name="pp" value="$perpage" />
+			<input type="hidden" name="page" value="$pagenumber" />
+			<label><input type="radio" checked="checked" value="2" name="vote">$vbphrase[yes]</label><if condition="$vbulletin->options['fdw_vote_canneg']">
+			<label><input type="radio" value="1" name="vote">$vbphrase[no]</label>
+			</if><button type="submit">$vbphrase[fdwvote_do]</button>
+		</form>
+	</div>
+</div>]]></template>
+		<template name="threadbit_votefdw" templatetype="template" date="1299890603" username="Admin" version="2.3.0"><![CDATA[<span class="smallfont" style="float: right;" id="thread_vote_$thread[threadid]"> (<if condition="$thread['votepos']>0"><span style="color: Green">+$thread[votepos]</span></if><if condition="$thread['voteneg']>0"> <span style="color: Red">-$thread[voteneg]</span></if>)</span>]]></template>
+		<template name="threadbit_votefdw_list" templatetype="template" date="1302108607" username="Admin" version="2.3.9.6"><![CDATA[<if condition="$show['in_header']"><script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_threadlist_vote.js?v=2"></script>
+<script type="text/javascript">YAHOO.util.Event.onDOMReady(function() { fdw_Threadlist_Vote.init('threadslist'); });</script><else /><div style="display:none" id="threadlist_vote">
+	<span style="display:block;height:13px;cursor:pointer" onclick="fdw_Threadlist_Vote.threadVote(2);">
+		<img src="$stylevar[imgdir_button]/up.png" alt="" border="0" /></a>
+	</span>
+	<span style="cursor:pointer" onclick="fdw_Threadlist_Vote.threadVote(1);">
+		<img src="$stylevar[imgdir_button]/down.png" alt="" border="0" /></a>
+	</span>
+</div></if>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="3">
+			<title>FDWVote: Template Cache</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND defined('THIS_SCRIPT'))
+{
+	$vbulletin->options['fdw_vote_show'] = unserialize($vbulletin->options['fdw_vote_show']);
+	$vbulletin->options['fdw_vote_listvote'] = unserialize($vbulletin->options['fdw_vote_listvote']);
+	
+	if (THIS_SCRIPT == 'showthread' AND $foruminfo['votefdw'])
+	{
+		$globaltemplates = array_merge($globaltemplates, array('showthread_votefdw', 'showthread_votefdw_form'));
+	}
+	
+	if (in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_listvote']))
+	{
+		$globaltemplates[] = 'threadbit_votefdw_list';
+	}
+	
+	if (in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']) OR (THIS_SCRIPT == 'misc' AND $_POST['do'] == 'vote' AND $vbulletin->GPC['ajax']))
+	{
+		$globaltemplates[] = 'threadbit_votefdw';
+	}
+	
+	if (THIS_SCRIPT == 'misc' AND $_POST['do'] == 'vote' AND $vbulletin->GPC['ajax'])
+	{
+		$globaltemplates[] = 'showthread_votefdw';
+	}
+}
+
+if ($vbulletin->options['fdw_vote_post_enable'])
+{
+	if (in_array(THIS_SCRIPT, array('showthread', 'showpost')))
+	{
+		$globaltemplates = array_merge($globaltemplates, array('postbit_reputation_fdw', 'postbit_reputation_fdw_text'));
+	}
+	
+	if (THIS_SCRIPT == 'reputation')
+	{
+		$globaltemplates = array_merge($globaltemplates, array('reputation_votedbit', 'reputationbit_fdw'));
+		if ($vbulletin->GPC['ajax'] OR $_REQUEST['do'] == 'whovoted' OR $_POST['do'] == 'updatereason')
+		{
+			$replacetemplates['reputationbit'] = 'reputationbit_wrapper';
+		}
+		if ($vbulletin->GPC['ajax'] AND $vbulletin->options['fdw_vote_post_thread'] AND $_POST['do'] == 'addreputation')
+		{
+			$globaltemplates[] = 'showthread_votefdw';
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Verify</title>
+			<hookname>fetch_threadinfo_query</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'])
+{
+	if ($vbulletin->options['fdw_vote_check'])
+	{
+		$hook_query_fields .= ", fdwvote.vote AS fdwvoted";
+		$hook_query_joins .= "\nLEFT JOIN " . TABLE_PREFIX . "fdwvote AS fdwvote ON (fdwvote.threadid = thread.threadid AND fdwvote.userid = " . $vbulletin->userinfo['userid'] . ")";
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Forum Config</title>
+			<hookname>forumadmin_edit_form</hookname>
+			<phpcode><![CDATA[print_yes_no_row($vbphrase['fdwvote_forum'], 'forum[votefdw]', $forum['votefdw']);]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Forum Field</title>
+			<hookname>forumdata_start</hookname>
+			<phpcode><![CDATA[$this->validfields['votefdw'] = array(TYPE_UINT, REQ_NO);]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Forum Display (Sort Link)</title>
+			<hookname>forumdisplay_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND $vbulletin->options['fdw_vote_sort']
+		AND $vbulletin->options['fdw_vote_template'] AND $foruminfo['votefdw'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']))
+{
+	$show['threadratings'] = true;
+	$vbphrase['rating'] = $vbphrase['rating_fdw'];
+	$vbphrase['thread_rating'] = $vbphrase['rating_thread_fdw'];
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Forum Display</title>
+			<hookname>forumdisplay_query</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND $foruminfo['votefdw'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']))
+{
+	if ($vbulletin->options['fdw_vote_listcheck'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_listvote']))
+	{
+		$hook_query_fields .= ", fdwvotetable.vote AS fdwvoted";
+		$hook_query_joins .= "\nLEFT JOIN " . TABLE_PREFIX . "fdwvote AS fdwvotetable ON (fdwvotetable.threadid = thread.threadid AND fdwvotetable.userid = " . $vbulletin->userinfo['userid'] . ")";
+	}
+	$hook_query_fields .= ($vbulletin->options['fdw_vote_canneg']) ? ', thread.votepos, thread.voteneg, thread.votepos - thread.voteneg AS fdwvote' : ', thread.votepos, 0 AS voteneg, thread.votepos AS fdwvote';
+	if ($vbulletin->options['fdw_vote_sort'] AND $sortfield == 'fdwvote')
+	{
+		$sqlsortfield = 'fdwvote';
+		$sortfield = 'voteavg';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Forum Display Sort</title>
+			<hookname>forumdisplay_query_threadid</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND $vbulletin->options['fdw_vote_sort']
+		AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']) AND $foruminfo['votefdw'] AND $sortfield == 'voteavg')
+{
+	$sortfield = $sqlsortfield = 'fdwvote';
+	$hook_query_fields .= ($vbulletin->options['fdw_vote_canneg']) ? ', thread.votepos - thread.voteneg AS fdwvote' : ', thread.votepos AS fdwvote';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="10">
+			<title>FDWVote: Post vote permission/List vote script</title>
+			<hookname>global_setup_complete</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'reputation' AND $vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_bypass'])
+{
+	// Usergroup permissions bypass
+	$fdwpermissions = $permissions['genericpermissions'];
+	$permissions['genericpermissions'] |= $vbulletin->bf_ugp_genericpermissions['canuserep'];
+}
+
+if (in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_listvote']))
+{
+	$show['in_header'] = true;
+	eval('$headinclude .= "' . fetch_template('threadbit_votefdw_list') . '";');
+	$show['in_header'] = false;
+	eval('$header .= "' . fetch_template('threadbit_votefdw_list') . '";');
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: PhraseGroup</title>
+			<hookname>init_startup</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'misc' AND $_POST['do'] == 'vote')
+{
+	$phrasegroups[] = 'reputation';
+}
+if ((THIS_SCRIPT == 'misc' AND $_POST['do'] == 'vote')
+		OR (
+			THIS_SCRIPT == 'reputation' AND $_POST['do'] == 'addreputation'
+				AND $vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_thread']
+		)
+	)
+{
+	$phrasegroups[] = 'showthread';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Vote</title>
+			<hookname>misc_start</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'vote')
+{
+	// Permission verification, as in threadrate.php
+	
+	$vbulletin->input->clean_array_gpc('p', array(
+		'vote'       => TYPE_UINT,
+		'pagenumber' => TYPE_UINT,
+		'perpage'    => TYPE_UINT,
+		'list'       => TYPE_BOOL
+	));
+
+	if (!(($vbulletin->GPC['vote'] == 1 AND $vbulletin->options['fdw_vote_canneg']) OR $vbulletin->GPC['vote'] == 2))
+	{
+		eval(standard_error($vbphrase['fdwvote_invalid']));
+	}
+
+	if (!$threadinfo['threadid'] OR (!$threadinfo['visible'] AND !can_moderate($threadinfo['forumid'], 'canmoderateposts')) OR (!$threadinfo['open'] AND !can_moderate($threadinfo['forumid'], 'canopenclose')) OR ($threadinfo['isdeleted'] AND !can_moderate($threadinfo['forumid'], 'candeleteposts')) OR ($threadinfo['postuserid'] == $vbulletin->userinfo['userid']))
+	{
+		eval(standard_error($vbphrase['fdwvote_threadclose']));
+	}
+
+	$vbulletin->options['fdw_vote_canuse'] = unserialize($vbulletin->options['fdw_vote_canuse']);
+
+	$forumperms = fetch_permissions($threadinfo['forumid']);
+	if (!($forumperms & $vbulletin->bf_ugp_forumpermissions['canviewthreads']) OR !($forumperms & $vbulletin->bf_ugp_forumpermissions['canview']) OR !(is_member_of($vbulletin->userinfo, $vbulletin->options['fdw_vote_canuse'])) OR (!($forumperms & $vbulletin->bf_ugp_forumpermissions['canviewothers']) AND ($threadinfo['postuserid'] != $vbulletin->userinfo['userid'])) OR (!$vbulletin->userinfo['userid']))
+	{
+		print_no_permission();
+	}
+
+	verify_forum_password($foruminfo['forumid'], $foruminfo['password']);
+	
+	if ($rating = $db->query_first("
+		SELECT voteid
+		FROM " . TABLE_PREFIX . "fdwvote
+		WHERE userid = " . $vbulletin->userinfo['userid'] . "
+			AND threadid = $threadinfo[threadid]
+	"))
+	{
+		eval(standard_error($vbphrase['fdwvote_voted']));
+	}
+	else
+	{
+		$db->query_write(
+			"INSERT INTO " . TABLE_PREFIX . "fdwvote
+				(vote, userid, threadid, votedate)
+			VALUES
+				({$vbulletin->GPC['vote']}, {$vbulletin->userinfo['userid']}, {$threadinfo['threadid']}, " . TIMENOW . ")
+		");
+		$threadfield = ($vbulletin->GPC['vote'] == 1) ? 'voteneg' : 'votepos';
+		$db->query_write("UPDATE " . TABLE_PREFIX . "thread SET $threadfield = $threadfield + 1 WHERE threadid = $threadinfo[threadid]");
+
+		if ($vbulletin->GPC['vote'] == 1 AND $vbulletin->options['fdw_vote_hide'] > 0 AND in_array($foruminfo['forumid'], unserialize($vbulletin->options['fdw_vote_forum'])))
+		{
+			if (($threadinfo[$threadfield] + 1) % $vbulletin->options['fdw_vote_hide'] == 0 AND $threadinfo['visible'] == 1)
+			{
+				require_once(DIR . '/includes/functions_databuild.php');
+				unapprove_thread($threadinfo['threadid'], $foruminfo['countposts'], true, $threadinfo);
+			}
+		}
+		
+		// Add reputation
+		if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_thread'] AND $vbulletin->options['reputationenable'] AND !$vbulletin->GPC['list'])
+		{
+			$postinfo = verify_id('post', $threadinfo['firstpostid'], 0, 1);
+			
+			// Calculate reputation power
+			$reptype = $vbulletin->GPC['vote'] == 2 ? 'pos' : 'neg';
+			require_once(DIR . '/includes/functions_reputation.php');
+			$score = fetch_reppower($vbulletin->userinfo, $permissions, $reptype);
+			
+			$error = false;
+			if (!($permissions['genericpermissions'] & $vbulletin->bf_ugp_genericpermissions['canuserep']))
+			{
+				$error = (!$vbulletin->options['fdw_vote_post_bypass']);
+				$score = 0;
+			}
+			
+			if ($postinfo['postid'] AND !$error)
+			{
+				$userinfo = fetch_userinfo($postinfo['userid']);
+				if ($userinfo['userid'] AND ($vbulletin->usergroupcache["$userinfo[usergroupid]"]['genericoptions'] & $vbulletin->bf_ugp_genericoptions['isnotbannedgroup']))
+				{
+					if ($repeat = $db->query_first("
+						SELECT postid
+						FROM " . TABLE_PREFIX . "reputation
+						WHERE postid = $postinfo[postid] AND
+							whoadded = " . $vbulletin->userinfo['userid']
+					))
+					{
+						// Repeated
+					}
+					else
+					{
+						$error = false;
+						if (!($permissions['adminpermissions'] & $vbulletin->bf_ugp_adminpermissions['cancontrolpanel']))
+						{
+							if ($vbulletin->options['maxreputationperday'] >= $vbulletin->options['reputationrepeat'])
+							{
+								$klimit = ($vbulletin->options['maxreputationperday'] + 1);
+							}
+							else
+							{
+								$klimit = ($vbulletin->options['reputationrepeat'] + 1);
+							}
+							$checks = $db->query_read("
+								SELECT userid, dateline
+								FROM " . TABLE_PREFIX . "reputation
+								WHERE whoadded = " . $vbulletin->userinfo['userid'] . "
+								ORDER BY dateline DESC
+								LIMIT 0, $klimit
+							");
+
+							$i = 0;
+							while ($check = $db->fetch_array($checks))
+							{
+								if (($i < $vbulletin->options['reputationrepeat']) AND ($check['userid'] == $postinfo['userid']))
+								{
+									$error = (!$vbulletin->options['fdw_vote_post_bypass']);
+									$score = 0;
+									break;
+								}
+								if (($i + 1) == $vbulletin->options['maxreputationperday'] AND (($check['dateline'] + 86400) > TIMENOW))
+								{
+									$error = (!$vbulletin->options['fdw_vote_post_bypass']);
+									$score = 0;
+									break;
+								}
+								$i++;
+							}
+						}
+						
+						if (!$error)
+						{
+							$userinfo['reputation'] += $score;
+							
+							$repreason = construct_phrase($vbphrase["fdw_x_vote$reptype"], $vbulletin->userinfo['username']);
+
+							// Determine this user's reputationlevelid.
+							$reputationlevel = $db->query_first_slave("
+								SELECT reputationlevelid
+								FROM " . TABLE_PREFIX . "reputationlevel
+								WHERE $userinfo[reputation] >= minimumreputation
+								ORDER BY minimumreputation
+								DESC LIMIT 1
+							");
+
+							// init user data manager
+							$userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
+							$userdata->set_existing($userinfo);
+							$userdata->set('reputation', $userinfo['reputation']);
+							$userdata->set('reputationlevelid', intval($reputationlevel['reputationlevelid']));
+
+							$userdata->pre_save();
+
+							/*insert query*/
+							$db->query_write("
+								INSERT IGNORE INTO " . TABLE_PREFIX . "reputation (postid, reputation, userid, whoadded, reason, dateline, fdwtype)
+								VALUES ($postinfo[postid], $score, $postinfo[userid], " . $vbulletin->userinfo['userid'] . ", '" . $db->escape_string(fetch_censored_text($repreason)) . "','" . TIMENOW . "', " . ($reptype == 'pos' ? 2 : 1) . ")
+							");
+							if ($db->affected_rows() == 0)
+							{
+								// attempt at a flood!
+							}
+							else
+							{
+								$userdata->save();
+								$db->query_write("UPDATE " . TABLE_PREFIX . "post SET vote$reptype = vote$reptype + 1 WHERE postid = $postinfo[postid]");
+								$postinfo['fdwrepadded'] = true;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		if ($vbulletin->GPC['ajax'])
+		{
+			$threadinfo[$threadfield]++;
+			
+			if ($vbulletin->GPC['list'])
+			{
+				$thread =& $threadinfo;
+				eval('$fdwvote_bit = "' . fetch_template('threadbit_votefdw') . '";');
+			}
+			else
+			{
+				$show['fdwvote_upos'] = ($vbulletin->GPC['vote'] == 2);
+				$show['fdwvote_uneg'] = ($vbulletin->GPC['vote'] == 1);
+				$show['fdwvote_pos'] = ($threadinfo['votepos'] > 0);
+				$show['fdwvote_neg'] = ($threadinfo['voteneg'] > 0);
+				$show['fdwvote_wrapper'] = false;
+				
+				eval('$fdwvote_bit = "' . fetch_template('showthread_votefdw') . '";');
+			}
+			
+			$attr = array();
+			if ($postinfo AND $postinfo['fdwrepadded'])
+			{
+				$postinfo["vote$reptype"]++;
+				$attr = array('type' => $reptype, 'post' => $postinfo['postid'], 'votes' => $postinfo["vote$reptype"]);
+			}
+			
+			require_once(DIR . '/includes/class_xml.php');
+			$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+			$xml->add_tag('fdwvotebit', $fdwvote_bit, $attr);
+			$xml->print_xml();
+			exit;
+		}
+		else
+		{
+			$vbulletin->url = 'showthread.php?' . $vbulletin->session->vars['sessionurl'] . "t=$threadinfo[threadid]&amp;page=" . $vbulletin->GPC['pagenumber'] . "&amp;pp=" . $vbulletin->GPC['perpage'];
+			eval(print_standard_redirect($vbphrase['fdwvote_redirect'], false));
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Message vote display</title>
+			<hookname>postbit_display_complete</hookname>
+			<phpcode><![CDATA[if ($this->registry->options['fdw_vote_post_enable'])
+{
+	if (!isset($this->registry->options['fdw_vote_post_who_can']))
+	{
+		$this->registry->options['fdw_vote_post_who_can'] = ($this->registry->userinfo['userid'] AND is_member_of($this->registry->userinfo, unserialize($this->registry->options['fdw_vote_post_who'])));
+	}
+	$show['reputationwho'] = $this->registry->options['fdw_vote_post_who_can'];
+	
+	$show['fdwreputationlink'] = $show['reputationlink'];
+	$show['reputationlink'] = false;
+	$show['fdwreputationbuttons'] = ($this->post['userid'] != $this->registry->userinfo['userid']);
+	
+	$reputationfdw = array('buttons' => '', 'text' => '');
+	
+	eval('$reputationfdw[\'buttons\'] = "' . fetch_template('postbit_reputation_fdw') . '";');
+	eval('$reputationfdw[\'text\'] = "' . fetch_template('postbit_reputation_fdw_text') . '";');
+	
+	if ($this->registry->options['fdw_vote_post_template'])
+	{
+		$template_hook['postbit_controls'] .= $reputationfdw['buttons'] . $reputationfdw['text'];
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="10">
+			<title>FDWVote: Message</title>
+			<hookname>reputation_add_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'])
+{
+	$likebtn = $vbulletin->input->clean_gpc('r', 'btn', TYPE_STR);
+	$likebtnnum = ($likebtn == 'like' ? 2 : 1);
+	
+	$postfield = ($vbulletin->GPC['reputation'] != 'pos' AND $score < 1) ? 'voteneg' : 'votepos';
+	$fdwtype = $postfield == 'votepos' ? 2 : 1;
+	
+	$db->query_write("UPDATE " . TABLE_PREFIX . "reputation SET fdwtype = $fdwtype, button = $likebtnnum WHERE postid = $postid AND userid = $userid AND whoadded = " . $vbulletin->userinfo['userid']);
+	$db->query_write("UPDATE " . TABLE_PREFIX . "post SET $postfield = $postfield + 1 WHERE postid = $postid");
+	
+	// Vote thread
+	if ($vbulletin->options['fdw_vote_post_thread'] AND $threadinfo['threadid'] AND $threadinfo['firstpostid'] == $postid)
+	{
+		if (($fdwtype == 2 OR $vbulletin->options['fdw_vote_canneg']) AND ($threadinfo['open'] OR can_moderate($threadinfo['forumid'], 'canopenclose')))
+		{
+			$vbulletin->options['fdw_vote_canuse'] = unserialize($vbulletin->options['fdw_vote_canuse']);
+			
+			$forumperms = fetch_permissions($threadinfo['forumid']);
+			if (($forumperms & $vbulletin->bf_ugp_forumpermissions['canviewthreads']) AND ($forumperms & $vbulletin->bf_ugp_forumpermissions['canview']) AND (is_member_of($vbulletin->userinfo, $vbulletin->options['fdw_vote_canuse'])) AND ($forumperms & $vbulletin->bf_ugp_forumpermissions['canviewothers']) AND ($vbulletin->userinfo['userid']))
+			{
+				if ($rating = $db->query_first("
+					SELECT voteid
+					FROM " . TABLE_PREFIX . "fdwvote
+					WHERE userid = " . $vbulletin->userinfo['userid'] . "
+						AND threadid = $threadinfo[threadid]
+				"))
+				{
+					// Repeated
+				}
+				else
+				{
+					$db->query_write(
+						"INSERT INTO " . TABLE_PREFIX . "fdwvote
+							(vote, userid, threadid, votedate)
+						VALUES
+							($fdwtype, {$vbulletin->userinfo['userid']}, {$threadinfo['threadid']}, " . TIMENOW . ")
+					");
+					$db->query_write("UPDATE " . TABLE_PREFIX . "thread SET $postfield = $postfield + 1 WHERE threadid = $threadinfo[threadid]");
+					
+					if ($fdwtype == 1 AND $vbulletin->options['fdw_vote_hide'] > 0 AND in_array($foruminfo['forumid'], unserialize($vbulletin->options['fdw_vote_forum'])))
+					{
+						if (($threadinfo[$postfield] + 1) % $vbulletin->options['fdw_vote_hide'] == 0 AND $threadinfo['visible'] == 1)
+						{
+							require_once(DIR . '/includes/functions_databuild.php');
+							unapprove_thread($threadinfo['threadid'], $foruminfo['countposts'], true, $threadinfo);
+						}
+					}
+					
+					if ($vbulletin->GPC['ajax'])
+					{
+						$threadinfo[$postfield]++;
+						
+						// Fetch votedbit
+						$show['fdwvote_upos'] = ($fdwtype == 2);
+						$show['fdwvote_uneg'] = ($fdwtype == 1);
+						$show['fdwvote_pos'] = ($threadinfo['votepos'] > 0);
+						$show['fdwvote_neg'] = ($threadinfo['voteneg'] > 0);
+						$show['fdwvote_wrapper'] = false;
+						
+						eval('$fdwvote_bit = "' . fetch_template('showthread_votefdw') . '";');
+					}
+				}
+			}
+		}
+	}
+	
+	if ($vbulletin->GPC['ajax'])
+	{
+		require_once(DIR . '/includes/functions_misc.php');
+		if ($fdwtype == 1)
+		{
+			$reputationmessage = process_replacement_vars(fetch_phrase('redirect_reputationminus', 'frontredirect', 'redirect_'));
+		}
+		else
+		{
+			$show['iapprove'] = true;
+			$fdwtype = 'pos' . ($likebtn == 'like' ? '_like' : '');
+			eval('$reputationmessage = "' . fetch_template('reputationbit_fdw') . '";');
+		}
+		
+		eval('$reputationbit = "' . fetch_template('reputationbit') . '";');
+		eval('$reputation = "' . fetch_template('reputation_ajax') . '";');
+		
+		// Return result properly
+		require_once(DIR . '/includes/class_xml.php');
+		$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+		
+		$xml->add_group('addreputation');
+		$xml->add_tag('reputationbit', $reputation, array(
+			'votes' => $postinfo["$postfield"] + 1
+		));
+		
+		if ($fdwvote_bit)
+		{
+			$xml->add_tag('fdwvotebit', $fdwvote_bit, array('threadid' => $threadinfo['threadid']));
+		}
+		$xml->close_group();
+		
+		$xml->print_xml();
+		exit;
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Post check limits</title>
+			<hookname>reputation_add_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_bypass'])
+{
+	if (!($permissions['genericpermissions'] & $vbulletin->bf_ugp_genericpermissions['canuserep']))
+	{
+		$score = 0;
+	}
+
+	if (!($permissions['adminpermissions'] & $vbulletin->bf_ugp_adminpermissions['cancontrolpanel']))
+	{
+		if ($vbulletin->options['fdwmaxreputationperday'] >= $vbulletin->options['fdwreputationrepeat'])
+		{
+			$klimit = ($vbulletin->options['fdwmaxreputationperday'] + 1);
+		}
+		else
+		{
+			$klimit = ($vbulletin->options['fdwreputationrepeat'] + 1);
+		}
+		$checks = $db->query_read("
+			SELECT userid, dateline
+			FROM " . TABLE_PREFIX . "reputation
+			WHERE whoadded = " . $vbulletin->userinfo['userid'] . "
+			ORDER BY dateline DESC
+			LIMIT 0, $klimit
+		");
+
+		$i = 0;
+		while ($check = $db->fetch_array($checks))
+		{
+			if (($i < $vbulletin->options['fdwreputationrepeat']) AND ($check['userid'] == $userid))
+			{
+				$score = 0;
+				break;
+			}
+			if (($i + 1) == $vbulletin->options['fdwmaxreputationperday'] AND (($check['dateline'] + 86400) > TIMENOW))
+			{
+				$score = 0;
+				break;
+			}
+			$i++;
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Reputation form</title>
+			<hookname>reputation_form</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->GPC['ajax'])
+{
+	// Like button
+	$likebtn = $vbulletin->input->clean_gpc('r', 'btn', TYPE_STR);
+	
+	// Just a negative reputation
+	$fdwtype = 'neg' . ($likebtn == 'like' ? '_like' : '');
+	$show['iapprove'] = false;
+	
+	if (!$show['negativerep'])
+	{
+		eval(standard_error(fetch_error('reputationcannotnegative')));
+	}
+	
+	eval('$reputationmessage = "' . fetch_template('reputationbit_fdw') . '";');
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Who voted/Update reason</title>
+			<hookname>reputation_start</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'whovoted')
+{
+	if (!is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_vote_post_who'])))
+	{
+		print_no_permission();
+	}
+	
+	$vbulletin->input->clean_gpc('r', 'reputation', TYPE_NOHTML);
+	$fdwtype = ($vbulletin->GPC['reputation'] == 'pos') ? 2 : 1;
+	
+	$users_query = $vbulletin->db->query_read("
+		SELECT user.userid, user.username
+		FROM " . TABLE_PREFIX . "reputation AS reputation
+		JOIN " . TABLE_PREFIX . "user AS user ON (reputation.whoadded = user.userid)
+		WHERE reputation.postid = $postinfo[postid] AND fdwtype = $fdwtype
+	");
+	
+	$votedbits = '';
+	while ($uservoted = $vbulletin->db->fetch_array($users_query))
+	{
+		$show['is_first'] = empty($votedbits);
+		eval('$votedbits .= "' . fetch_template('reputation_votedbit') . '";');
+	}
+	
+	if (empty($votedbits))
+	{
+		eval(standard_error(fetch_error('reputationnovotes')));
+	}
+	
+	$reputationmessage =& $votedbits;
+}
+
+if ($_POST['do'] == 'updatereason')
+{
+	$vbulletin->input->clean_array_gpc('p', array(
+		'reason'     => TYPE_STR,
+		'ajax'       => TYPE_BOOL,
+	));
+	
+	if ($vbulletin->GPC['ajax'])
+	{
+		$vbulletin->GPC['reason'] = convert_urlencoded_unicode($vbulletin->GPC['reason']);
+	}
+	
+	if ($repadded = $db->query_first("
+		SELECT reputationid
+		FROM " . TABLE_PREFIX . "reputation
+		WHERE postid = $postid AND
+			whoadded = " . $vbulletin->userinfo['userid'] . "
+			AND reason = '' AND fdwtype = 2
+	"))
+	{
+		$vbulletin->db->query_write("
+			UPDATE " . TABLE_PREFIX . "reputation
+			SET reason = '" . $vbulletin->db->escape_string(fetch_censored_text($vbulletin->GPC['reason'])) . "'
+			WHERE reputationid = $repadded[reputationid]
+		");
+		
+		require_once(DIR . '/includes/functions_misc.php');
+		$reputationmessage = process_replacement_vars(fetch_phrase('redirect_reputationadd', 'frontredirect', 'redirect_'));
+	}
+	else
+	{
+		eval(standard_error(fetch_error('reputationnovotes')));
+	}
+}
+
+if ($_REQUEST['do'] == 'whovoted' OR $_POST['do'] == 'updatereason')
+{
+	eval('$reputationbit = "' . fetch_template('reputationbit') . '";');
+	if ($vbulletin->GPC['ajax'])
+	{
+		eval('$reputation = "' . fetch_template('reputation_ajax') . '";');
+
+		require_once(DIR . '/includes/class_xml.php');
+		$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+		$xml->add_tag('reputationbit', process_replacement_vars($reputation));
+		$xml->print_xml();
+	}
+
+	// draw nav bar
+	$navbits = array();
+	$parentlist = array_reverse(explode(',', $foruminfo['parentlist']));
+	foreach ($parentlist AS $forumID)
+	{
+		$forumTitle = $vbulletin->forumcache["$forumID"]['title'];
+		$navbits['forumdisplay.php?' . $vbulletin->session->vars['sessionurl'] . "f=$forumID"] = $forumTitle;
+	}
+	$navbits['showthread.php?' . $vbulletin->session->vars['sessionurl'] . "p=$postid"] = $threadinfo['prefix_plain_html'] . ' ' . $threadinfo['title'];
+	$navbits[''] = $vbphrase['reputation'];
+	$navbits = construct_navbits($navbits);
+
+	eval('$navbar = "' . fetch_template('navbar') . '";');
+
+	eval('print_output("' . fetch_template('reputation') . '");');
+}
+
+if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_bypass'])
+{
+	// Restore bypassed permissions
+	$permissions['genericpermissions'] = $fdwpermissions;
+	
+	// Bypass checks
+	$vbulletin->options['fdwmaxreputationperday'] = $vbulletin->options['maxreputationperday'];
+	$vbulletin->options['fdwreputationrepeat'] = $vbulletin->options['reputationrepeat'];
+	
+	$vbulletin->options['maxreputationperday'] = -1;
+	$vbulletin->options['reputationrepeat'] = -1;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Message script (ShowPost)</title>
+			<hookname>showpost_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_template'] AND $show['reputation'])
+{
+	$headinclude .= '<script type="text/javascript" src="' . $vbulletin->options['fdw_plugin_static'] . 'clientscript/fdw_ajax_reputation.js?v=5"></script>';
+	$show['reputation'] = false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: ShowThread Template</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND $foruminfo['votefdw'])
+{
+	$vbulletin->options['fdw_vote_canuse'] = unserialize($vbulletin->options['fdw_vote_canuse']);
+
+	$show['fdwvote_wrapper'] = true;
+	$show['fdwvote_pos'] = ($threadinfo['votepos'] > 0);
+	$show['fdwvote_neg'] = ($threadinfo['voteneg'] > 0 AND $vbulletin->options['fdw_vote_canneg']);
+	$show['fdwvote_upos'] = ($threadinfo['fdwvoted'] == 2);
+	$show['fdwvote_uneg'] = ($threadinfo['fdwvoted'] == 1);
+
+	$fdwvote_form = '';
+	if (!$threadinfo['fdwvoted'] AND is_member_of($vbulletin->userinfo, $vbulletin->options['fdw_vote_canuse']) AND $threadinfo['postuserid'] != $vbulletin->userinfo['userid'])
+	{
+		eval('$fdwvote_form = "' . fetch_template('showthread_votefdw_form') . '";');
+	}
+	eval('$fdwvote_votes = "' . fetch_template('showthread_votefdw') . '";');
+
+	if ($vbulletin->options['fdw_vote_template_st'])
+	{
+		$poll .= $fdwvote_votes . $fdwvote_form;
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Message script (ShowThread)</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_template'] AND $show['reputation'])
+{
+	$headinclude .= '<script type="text/javascript" src="' . $vbulletin->options['fdw_plugin_static'] . 'clientscript/fdw_ajax_reputation.js?v=5"></script>';
+	$show['reputation'] = false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: Tags list query</title>
+			<hookname>tags_list_query_data</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']))
+{
+	$fdwvoteforums = '';
+	foreach ($forumids AS $forumid)
+	{
+		if ($vbulletin->forumcache["$forumid"]['votefdw'])
+		{
+			$show['threadvotefdw'] = true;
+			$fdwvoteforums .= ",$forumid";
+		}
+	}
+
+	if (!empty($fdwvoteforums))
+	{
+		if ($vbulletin->options['fdw_vote_listcheck'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_listvote']))
+		{
+			$hook_query_fields .= ", fdwvote.vote AS fdwvoted";
+			$hook_query_joins .= "\nLEFT JOIN " . TABLE_PREFIX . "fdwvote AS fdwvote ON (fdwvote.threadid = thread.threadid AND fdwvote.userid = " . $vbulletin->userinfo['userid'] . ")";
+		}
+		
+		if ($vbulletin->options['fdw_vote_canneg'])
+		{
+			$hook_query_fields .= ",
+				IF(thread.forumid IN (0$fdwvoteforums), thread.votepos, 0) AS votepos,
+				IF(thread.forumid IN (0$fdwvoteforums), thread.voteneg, 0) AS voteneg,
+				IF(thread.forumid IN (0$fdwvoteforums), thread.votepos - thread.voteneg, 0) AS fdwvote
+			";
+		}
+		else
+		{
+			$hook_query_fields .= ",
+				IF(thread.forumid IN (0$fdwvoteforums), thread.votepos, 0) AS votepos,
+				0 AS voteneg,
+				IF(thread.forumid IN (0$fdwvoteforums), thread.votepos, 0) AS fdwvote
+			";
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: ThreadBit Template</title>
+			<hookname>threadbit_process</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_enable'] AND $vbulletin->forumcache["$thread[forumid]"]['votefdw'] AND in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_show']))
+{
+	if ($thread['votepos'] > 0 OR $thread['voteneg'] > 0) 
+	{
+		eval('$thread[\'fdwvotes\'] = "' . fetch_template('threadbit_votefdw') . '";');
+	}
+	else
+	{
+		$thread['fdwvotes'] = '';
+	}
+	
+	if (in_array(THIS_SCRIPT, $vbulletin->options['fdw_vote_listvote']) AND $thread['postuserid'] != $vbulletin->userinfo['userid'])
+	{
+		if (!isset($vbulletin->userinfo['can_vote_threads']))
+		{
+			$vbulletin->userinfo['can_vote_threads'] = is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_vote_canuse']));
+		}
+		if ($vbulletin->userinfo['can_vote_threads'] AND !$thread['fdwvoted']) {
+			if ($thread['open'] != 10 AND ($thread['visible'] OR can_moderate($thread['forumid'], 'canmoderateposts')) AND ($thread['open'] OR can_moderate($thread['forumid'], 'canopenclose')) AND (!$thread['isdeleted'] OR can_moderate($thread['forumid'], 'candeleteposts')))
+			{
+				$thread['fdwvotes'] .= '<a rel="fdw::AJAX"></a>';
+			}
+		}
+	}
+	
+	if ($vbulletin->options['fdw_vote_template'])
+	{
+		$thread['title_editable'] .= $thread['fdwvotes'];
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: User CP show</title>
+			<hookname>usercp_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_cp'])
+{
+	$vbulletin->options['showuserrates'] = intval($vbulletin->options['showuserrates']);
+	$vbulletin->options['showuserraters'] = $permissions['genericpermissions'] & $vbulletin->bf_ugp_genericpermissions['canseeownrep'];
+	$reputations = $db->query_read_slave("
+		SELECT
+			reputation.whoadded, reputation.postid, reputation.reputation, reputation.reason, reputation.dateline, reputation.fdwtype,
+			user.userid, user.username, post.threadid, thread.title
+		FROM " . TABLE_PREFIX . "reputation AS reputation
+		LEFT JOIN " . TABLE_PREFIX . "post AS post ON (reputation.postid = post.postid AND post.visible = 1)
+		LEFT JOIN " . TABLE_PREFIX . "thread AS thread ON (post.threadid = thread.threadid AND thread.visible = 1)
+		LEFT JOIN " . TABLE_PREFIX . "user AS user ON (user.userid = reputation.whoadded)
+		WHERE reputation.userid = " . $vbulletin->userinfo['userid'] . "
+			" . iif($vbulletin->options['showuserraters'] AND trim($vbulletin->userinfo['ignorelist']), " AND reputation.whoadded NOT IN (0," . str_replace(' ', ',', trim($vbulletin->userinfo['ignorelist'])). ")") . "
+		ORDER BY reputation.dateline DESC
+		LIMIT 0, " . $vbulletin->options['showuserrates']
+	);
+
+	$reputationcommentbits = '';
+	if ($vbulletin->options['showuserraters'])
+	{
+		$reputationcolspan = 5;
+		$reputationbgclass = 'alt2';
+	}
+	else
+	{
+		$reputationcolspan = 4;
+		$reputationbgclass = 'alt1';
+	}
+
+	require_once(DIR . '/includes/class_bbcode.php');
+	$bbcode_parser =& new vB_BbCodeParser($vbulletin, fetch_tag_list());
+
+	while ($reputation = $db->fetch_array($reputations))
+	{
+		if (!$reputation['fdwtype'])
+		{
+			if ($reputation['reputation'] > 0)
+			{
+				$posneg = 'pos';
+			}
+			else if ($reputation['reputation'] < 0)
+			{
+				$posneg = 'neg';
+			}
+			else
+			{
+				$posneg = 'balance';
+			}
+		}
+		else
+		{
+			$posneg = ($reputation['fdwtype'] == 2) ? 'pos' : 'neg';
+		}
+		
+		if (empty($reputation['reason']))
+		{
+			$fdwlikephrase = ($posneg == 'neg') ? 'fdwvote_x_nolike_msg' : 'fdwvote_x_like_msg';
+			$reputation['reason'] = construct_phrase($vbphrase[$fdwlikephrase], $reputation['username']);
+		}
+		
+		$reputation['timeline'] = vbdate($vbulletin->options['timeformat'], $reputation['dateline']);
+		$reputation['dateline'] = vbdate($vbulletin->options['dateformat'], $reputation['dateline']);
+		$reputation['reason'] = $bbcode_parser->parse($reputation['reason']);
+		if (vbstrlen($reputation['title']) > 25)
+		{
+			$reputation['title'] = fetch_trimmed_title($reputation['title'], 24);
+		}
+
+		($hook = vBulletinHook::fetch_hook('usercp_reputationbit')) ? eval($hook) : false;
+
+		eval('$reputationcommentbits .= "' . fetch_template('usercp_reputationbits') . '";');
+		$show['reputation'] = true;
+	}
+	unset($bbcode_parser);
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDWVote: User CP bypass</title>
+			<hookname>usercp_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_vote_post_enable'] AND $vbulletin->options['fdw_vote_post_cp'])
+{
+	$vbulletin->options['fdw_vote_post_cp'] = $vbulletin->options['reputationenable'];
+	$vbulletin->options['reputationenable'] = false;
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="reputationcannotnegative" date="1299597890" username="Admin" version="2.1.0"><![CDATA[No tienes permisos para realizar votos negativos]]></phrase>
+			<phrase name="reputationnovotes" date="1298691394" username="Admin" version="2.0.0"><![CDATA[Ningún voto encontrado]]></phrase>
+		</phrasetype>
+		<phrasetype name="Forum-Related" fieldname="forum">
+			<phrase name="fdwvote_forum" date="0" username="" version=""><![CDATA[Habilitar puntuación de temas en este foro]]></phrase>
+		</phrasetype>
+		<phrasetype name="Forum Display" fieldname="forumdisplay">
+			<phrase name="rating_fdw" date="0" username="" version=""><![CDATA[Puntuación]]></phrase>
+			<phrase name="rating_thread_fdw" date="0" username="" version=""><![CDATA[Puntuación de tema]]></phrase>
+		</phrasetype>
+		<phrasetype name="Postbit" fieldname="postbit">
+			<phrase name="fdw_postbit_like" date="1300887263" username="Admin" version="2.3.9"><![CDATA[Me gustó, ¡gracias!]]></phrase>
+			<phrase name="fdw_postbit_no_like" date="1300887285" username="Admin" version="2.3.9"><![CDATA[No gracias]]></phrase>
+		</phrasetype>
+		<phrasetype name="Reputation" fieldname="reputation">
+			<phrase name="fdw_add_comment" date="1299597516" username="Admin" version="2.1.0"><![CDATA[¿Agregar un comentario?]]></phrase>
+			<phrase name="fdw_rep_neg" date="1299597488" username="Admin" version="2.1.0"><![CDATA[Debes añadir un comentario para el voto negativo:]]></phrase>
+			<phrase name="fdw_rep_pos" date="1299597440" username="Admin" version="2.1.0"><![CDATA[Gracias por tu voto.]]></phrase>
+			<phrase name="fdw_x_voteneg" date="1298483606" username="Admin" version="2.0.0"><![CDATA[A {1} no le gustó tu tema]]></phrase>
+			<phrase name="fdw_x_votepos" date="1298483618" username="Admin" version="2.0.0"><![CDATA[A {1} le gustó tu tema]]></phrase>
+		</phrasetype>
+		<phrasetype name="Show Thread" fieldname="showthread">
+			<phrase name="fdwvote_do" date="0" username="" version=""><![CDATA[Votar]]></phrase>
+			<phrase name="fdwvote_include" date="0" username="" version=""><![CDATA[(incluyéndote)]]></phrase>
+			<phrase name="fdwvote_invalid" date="0" username="" version=""><![CDATA[La puntuación que ha especificado no es válida]]></phrase>
+			<phrase name="fdwvote_like" date="0" username="" version=""><![CDATA[¿Te gustó este tema?]]></phrase>
+			<phrase name="fdwvote_redirect" date="0" username="" version=""><![CDATA[Gracias por dar tu opinión sobre este tema]]></phrase>
+			<phrase name="fdwvote_threadclose" date="0" username="" version=""><![CDATA[No puede calificar este tema]]></phrase>
+			<phrase name="fdwvote_voted" date="0" username="" version=""><![CDATA[No puedes calificar dos veces un mismo tema]]></phrase>
+			<phrase name="fdwvote_x_like" date="0" username="" version=""><![CDATA[Este tema le ha gustado a {1} personas]]></phrase>
+			<phrase name="fdwvote_x_nolike" date="0" username="" version=""><![CDATA[Este tema no le ha gustado a {1} personas]]></phrase>
+		</phrasetype>
+		<phrasetype name="User Tools (global)" fieldname="user">
+			<phrase name="fdwvote_x_like_msg" date="1299909865" username="Admin" version="2.3.6"><![CDATA[A {1} le gustó tu mensaje]]></phrase>
+			<phrase name="fdwvote_x_nolike_msg" date="1299910362" username="Admin" version="2.3.6"><![CDATA[A {1} no le gustó tu mensaje]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_vote_canneg_desc" date="0" username="" version=""><![CDATA[Permitir puntuaciones negativas a los temas]]></phrase>
+			<phrase name="setting_fdw_vote_canneg_title" date="0" username="" version=""><![CDATA[Puntuación negativa]]></phrase>
+			<phrase name="setting_fdw_vote_canuse_desc" date="0" username="" version=""><![CDATA[Grupos de usuarios habilitados para usar el sistema de puntuación]]></phrase>
+			<phrase name="setting_fdw_vote_canuse_title" date="0" username="" version=""><![CDATA[Usuarios habilitados]]></phrase>
+			<phrase name="setting_fdw_vote_check_desc" date="0" username="" version=""><![CDATA[Verificar si el usuario ya votó en el tema mostrado.<br /><strong>Nota:</strong> Puede disminuir el rendimiento]]></phrase>
+			<phrase name="setting_fdw_vote_check_title" date="0" username="" version=""><![CDATA[Verificar voto]]></phrase>
+			<phrase name="setting_fdw_vote_enable_desc" date="0" username="" version=""><![CDATA[Activar/Desactivar puntuación de temas]]></phrase>
+			<phrase name="setting_fdw_vote_enable_title" date="0" username="" version=""><![CDATA[Activar]]></phrase>
+			<phrase name="setting_fdw_vote_forum_desc" date="1289195965" username="Admin" version="1.5.0"><![CDATA[Foros donde estará activa la opción de enviar a cola de moderación los temas puntuados negativamente.]]></phrase>
+			<phrase name="setting_fdw_vote_forum_title" date="1289195965" username="Admin" version="1.5.0"><![CDATA[Ocultar en foros]]></phrase>
+			<phrase name="setting_fdw_vote_hide_desc" date="1289231080" username="Admin" version="1.5.0"><![CDATA[Cada vez que un tema reciba el número especificado de votos negativos se enviará a cola de moderación.<br />Si especifica cero se desactivará la opción.]]></phrase>
+			<phrase name="setting_fdw_vote_hide_title" date="1289231080" username="Admin" version="1.5.0"><![CDATA[Ocultar temas]]></phrase>
+			<phrase name="setting_fdw_vote_listcheck_desc" date="1300252190" username="Admin" version="2.3.7"><![CDATA[Verificar si el usuario ya votó en el listado de temas<br /><strong>Nota: </strong>Puede disminuir el rendimiento]]></phrase>
+			<phrase name="setting_fdw_vote_listcheck_title" date="1300252190" username="Admin" version="2.3.7"><![CDATA[Verificar voto (listado)]]></phrase>
+			<phrase name="setting_fdw_vote_listvote_desc" date="1299889734" username="Admin" version="2.3.0"><![CDATA[Selecciona las páginas donde se permitirá votar directamente en el listado de temas]]></phrase>
+			<phrase name="setting_fdw_vote_listvote_title" date="1299889734" username="Admin" version="2.3.0"><![CDATA[Votar en listado]]></phrase>
+			<phrase name="setting_fdw_vote_post_bypass_desc" date="1299630027" username="Admin" version="2.2.0"><![CDATA[Saltar las restricciones del sistema de reputación al votar un mensaje (se agrega el voto y reputación con valor 0)]]></phrase>
+			<phrase name="setting_fdw_vote_post_bypass_title" date="1299630027" username="Admin" version="2.2.0"><![CDATA[Restricciones]]></phrase>
+			<phrase name="setting_fdw_vote_post_cp_desc" date="1299909720" username="Admin" version="2.3.5"><![CDATA[Diferenciar entre positivos y negativos en el panel de control a partir de la votación de mensajes. Agregar un comentario genérico si no se ingresó ninguno.]]></phrase>
+			<phrase name="setting_fdw_vote_post_cp_title" date="1299909720" username="Admin" version="2.3.5"><![CDATA[Panel de Control]]></phrase>
+			<phrase name="setting_fdw_vote_post_enable_desc" date="1297778326" username="Admin" version="2.0.0"><![CDATA[Activar/desactivar puntuación de mensajes individuales.<br /><br /><strong>NOTA: </strong>Esta opción se integra al sistema de reputación.]]></phrase>
+			<phrase name="setting_fdw_vote_post_enable_title" date="1297778326" username="Admin" version="2.0.0"><![CDATA[Activar]]></phrase>
+			<phrase name="setting_fdw_vote_post_template_desc" date="1298515416" username="Admin" version="2.0.0"><![CDATA[Reemplazar automáticamente en las plantillas el modo de valoración de los mensajes.]]></phrase>
+			<phrase name="setting_fdw_vote_post_template_title" date="1298515416" username="Admin" version="2.0.0"><![CDATA[Plantillas]]></phrase>
+			<phrase name="setting_fdw_vote_post_thread_desc" date="1298483226" username="Admin" version="2.0.0"><![CDATA[Vincular el voto del primer mensaje con el voto del tema.]]></phrase>
+			<phrase name="setting_fdw_vote_post_thread_title" date="1298483226" username="Admin" version="2.0.0"><![CDATA[Puntuación de tema]]></phrase>
+			<phrase name="setting_fdw_vote_post_who_desc" date="1298483138" username="Admin" version="2.0.0"><![CDATA[Grupos de usuarios que tienen permisos para ver quién votó un mensaje]]></phrase>
+			<phrase name="setting_fdw_vote_post_who_title" date="1298483138" username="Admin" version="2.0.0"><![CDATA[Quién votó]]></phrase>
+			<phrase name="setting_fdw_vote_show_desc" date="1299889723" username="Admin" version="2.3.0"><![CDATA[Selecciona las páginas de listado de temas donde se mostrará la puntuación]]></phrase>
+			<phrase name="setting_fdw_vote_show_title" date="1299889723" username="Admin" version="2.3.0"><![CDATA[Mostrar puntuación]]></phrase>
+			<phrase name="setting_fdw_vote_sort_desc" date="0" username="" version=""><![CDATA[Permite ordenar los temas por puntuación<br /><strong>Nota:</strong> Esta opción sustituye la opción de ordenar por calificación]]></phrase>
+			<phrase name="setting_fdw_vote_sort_title" date="0" username="" version=""><![CDATA[Ordenar por puntuación]]></phrase>
+			<phrase name="setting_fdw_vote_template_desc" date="0" username="" version=""><![CDATA[Añadir automáticamente la puntuación a las plantillas<br />(Si deshabilita esta opción debe editar manualmente las plantillas)]]></phrase>
+			<phrase name="setting_fdw_vote_template_st_desc" date="1289015249" username="Admin" version="1.5.0"><![CDATA[Añadir automáticamente el formulario de votación a la plantilla ShowThread]]></phrase>
+			<phrase name="setting_fdw_vote_template_st_title" date="1289015249" username="Admin" version="1.5.0"><![CDATA[Plantilla (ShowThread)]]></phrase>
+			<phrase name="setting_fdw_vote_template_title" date="0" username="" version=""><![CDATA[Plantillas]]></phrase>
+			<phrase name="settinggroup_fdw_vote_opt" date="0" username="" version=""><![CDATA[Puntuación de temas]]></phrase>
+			<phrase name="settinggroup_fdw_vote_opt2" date="1297778144" username="Admin" version="2.0.0"><![CDATA[Puntuación de mensajes]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_vote_opt" displayorder="500">
+			<setting varname="fdw_vote_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_check" displayorder="20">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_canuse" displayorder="30">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:4:{i:0;i:6;i:1;i:7;i:2;i:2;i:3;i:5;}</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_canneg" displayorder="40">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_template" displayorder="50">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_template_st" displayorder="55">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>no</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_sort" displayorder="60">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_hide" displayorder="70">
+				<datatype>integer</datatype>
+				<defaultvalue>10</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_forum" displayorder="80">
+				<datatype>free</datatype>
+				<optioncode>fdwforums:7</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_show" displayorder="90">
+				<datatype>free</datatype>
+				<optioncode>fdwselect:3
+-|-
+tags|Tags
+forumdisplay|ForumDisplay</optioncode>
+				<defaultvalue><![CDATA[a:1:{i:0;s:12:"forumdisplay";}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_listvote" displayorder="100">
+				<datatype>free</datatype>
+				<optioncode>fdwselect:3
+-|-
+tags|Tags
+forumdisplay|ForumDisplay</optioncode>
+				<defaultvalue><![CDATA[a:1:{i:0;s:4:"tags";}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_listcheck" displayorder="110">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+		</settinggroup>
+		<settinggroup name="fdw_vote_opt2" displayorder="510">
+			<setting varname="fdw_vote_post_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_post_who" displayorder="20">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_post_thread" displayorder="30">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_post_template" displayorder="40">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_post_bypass" displayorder="50">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_vote_post_cp" displayorder="60">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

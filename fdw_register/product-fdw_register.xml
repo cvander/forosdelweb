@@ -1,0 +1,846 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_register" active="1">
+	<title>Simple Sign Up</title>
+	<description>Facilitar el registro de usuarios</description>
+	<version>1.5.5</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.0" maxversion="" />
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+		<template name="humanverify_image_ajax" templatetype="template" date="1284408489" username="Admin" version="1.0.0"><![CDATA[<script type="text/javascript">
+YAHOO.util.Dom.get("hash").setAttribute("value", "$humanverify[hash]");
+YAHOO.util.Dom.get("imagereg").setAttribute("src", "image.php?" + SESSIONURL + "type=hv&hash=$humanverify[hash]");
+</script>]]></template>
+		<template name="humanverify_question_ajax" templatetype="template" date="1284408948" username="Admin" version="1.0.0"><![CDATA[<if condition="$humanverify['answer']">
+<script type="text/javascript">
+(function() {
+var element = document.getElementById("humanverify");
+element.value = "";
+element.parentNode.getElementsByTagName("label")[0].innerHTML = "$humanverify[question]";
+YAHOO.util.Dom.get("hash").setAttribute("value", "$humanverify[hash]");
+})();
+</script>
+<else />
+<script type="text/javascript">
+YAHOO.util.Dom.get("hash").setAttribute("value", "$humanverify[hash]");
+</script>
+</if>]]></template>
+		<template name="humanverify_recaptcha_ajax" templatetype="template" date="1284424738" username="Admin" version="1.0.0"><![CDATA[<if condition="$_POST['do'] == 'addmember'">
+<script type="text/javascript">
+YAHOO.util.Dom.get("hash").setAttribute("value", "$humanverify[hash]");
+Recaptcha.reload();
+</script>
+<else />
+<script type="text/javascript">
+	fdwAjaxEval.loadScript("<if condition="$show['recaptcha_ssl']">https://api-secure.recaptcha.net/js/recaptcha_ajax.js<else />http://api.recaptcha.net/js/recaptcha_ajax.js</if>");
+</script>
+<fieldset class="fieldset">
+	<legend>$vbphrase[image_verification]</legend>
+	<input id="hash" type="hidden" name="${var_prefix}[hash]" value="$humanverify[hash]" />
+	<div dir="ltr" id="register_recaptcha">
+	</div>
+	<script type="text/javascript">
+		fdwAjaxEval.waitObject("Recaptcha", function() {
+			Recaptcha.create("$humanverify[publickey]", 'register_recaptcha', {
+				theme: '$humanverify[theme]',
+				callback: Recaptcha.focus_response_field<if condition="$humanverify['langcode']">,
+				lang : '$humanverify[langcode]'
+			</if>});
+		});
+	</script>
+</fieldset>
+</if>]]></template>
+		<template name="navbar_fdw_regajax" templatetype="template" date="1300314970" username="Admin" version="1.5.5"><![CDATA[<if condition="$show['registerbutton']">
+<if condition="$show['inheader']">
+<style type="text/css">
+/* ***** red and green boxes for username verification used during registration ***** */
+.greenbox { border: 1px solid #337733; background: #bbffbb; color: #337733; padding: 3px; }
+.redbox { border:1px solid #773333; background: #ffbbbb; color: #773333; padding: 3px; }
+</style>
+<else />
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_register_form.js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_ajax_eval.js"></script>
+<script type="text/javascript">
+(function() {
+	YAHOO.util.Dom.getElementsByClassName("vbmenu_control", "td", null, function(E) {
+		var link = null;
+		if (link = E.getElementsByTagName("a")[0]) {
+			if (link.href.indexOf("register.php") > -1) {
+				fdwRegisterForm.init(E);
+			}
+		}
+	});
+})();
+</script>
+</if>
+</if>]]></template>
+		<template name="navbar_fdw_register" templatetype="template" date="1284367856" username="Admin" version="1.0.0"><![CDATA[<div style="width:500px;margin:10px auto;border:1px solid #773333; background: #ffbbbb; color: #773333; padding: 3px;">
+$vbphrase[updateprofilefields]
+</div>]]></template>
+		<template name="register_fdw" templatetype="template" date="1300315016" username="Admin" version="1.5.5"><![CDATA[$stylevar[htmldoctype]
+<html xmlns="http://www.w3.org/1999/xhtml" dir="$stylevar[textdirection]" lang="$stylevar[languagecode]">
+<head>
+$headinclude
+<style type="text/css">
+/* ***** red and green boxes for username verification used during registration ***** */
+.greenbox { border: 1px solid #337733; background: #bbffbb; color: #337733; padding: 3px; }
+.redbox { border:1px solid #773333; background: #ffbbbb; color: #773333; padding: 3px; }
+</style>
+<title>$vboptions[bbtitle] - $vbphrase[registration]</title>
+</head>
+<body>
+
+$header
+
+<br />
+
+<if condition="$show['errors']">
+	<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+	<tr>
+		<td class="tcat">$vbphrase[errors_occurred_during_registration]</td>
+	</tr>
+	<tr>
+		<td class="alt1"><ul>$errorlist</ul></td>
+	</tr>
+	</table>
+	<br />
+</if>
+
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/vbulletin_md5.js?v=$vboptions[simpleversion]"></script>
+<script type="text/javascript">
+function verify_passwords(password1, password2)
+{
+	// do various checks, this will save people noticing mistakes on next page
+	if (password1.value == '' || password2.value == '')
+	{
+		alert('$vbphrase[fill_out_both_password_fields]');
+		return false;
+	}
+	else if (password1.value != password2.value)
+	{
+		alert('$vbphrase[entered_passwords_do_not_match]');
+		return false;
+	}
+	else
+	{
+		var junk_output;
+
+		md5hash(password1, document.forms.register.password_md5, junk_output, $show[nopasswordempty]);
+		md5hash(password2, document.forms.register.passwordconfirm_md5, junk_output, $show[nopasswordempty]);
+
+		return true;
+	}
+	return false;
+}
+</script>
+
+<form action="register.php?do=addmember" name="register" method="post" onsubmit="return verify_passwords(password, passwordconfirm);">
+<input type="hidden" name="s" value="$session[sessionhash]" />
+<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+<input type="hidden" name="do" value="addmember" />
+<input type="hidden" name="url" value="$url" />
+<input type="hidden" name="agree" value="$agree" />
+<input type="hidden" name="password_md5" />
+<input type="hidden" name="passwordconfirm_md5" />
+<input type="hidden" name="dst" value="2" />
+<input type="hidden" name="timezoneoffset" value="$timezonesel" />
+$customfields_other
+$customfields_profile
+$customfields_option
+
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+<tr>
+	<td class="tcat"><phrase 1="$vboptions[bbtitle]">$vbphrase[register_at_x]</phrase></td>
+</tr>
+<tr>
+	<td class="panelsurround" align="center">
+	<div class="panel">
+		<div style="width:$stylevar[formwidth]" align="$stylevar[left]">
+
+			<div class="smallfont" style="margin-bottom:$stylevar[formspacer]px">
+				<phrase 1="$vboptions[bbtitle]">$vbphrase[to_post_must_first_register]</phrase>
+			</div>
+
+			<div class="smallfont" style="margin-bottom:$stylevar[formspacer]px">
+				<strong>$vbphrase[email_address]</strong>:<br />
+				<input class="bginput" id="regemail" type="text" name="email" size="50" maxlength="50" value="$email" />
+				<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_ajax_email.js"></script>
+				<script type="text/javascript">
+					fdw_AJAX_EmailVerify.prototype.cleargif = "$vboptions[cleargifurl]";
+					var emailVerify = new fdw_AJAX_EmailVerify("regemail");
+					document.getElementById("regemail").onblur = function() {
+						var reguser = document.getElementById("reguser");
+						if (!reguser) {
+							var currentemail = document.getElementById("regemail").value;
+							document.getElementById("regusername").value = currentemail.split("@")[0];
+						}
+					}
+				</script>
+			</div>
+
+			<fieldset class="fieldset">
+				<legend>$vbphrase[password]</legend>
+				<table cellpadding="0" cellspacing="$stylevar[formspacer]" border="0" width="400">
+				<tr>
+					<td colspan="2">$vbphrase[enter_password_for_account]</td>
+				</tr>
+				<tr>
+					<td>
+						$vbphrase[password]:<br />
+						<input type="password" class="bginput" name="password" size="25" maxlength="50" value="$password" />
+					</td>
+					<td>
+						$vbphrase[confirm_password]:<br />
+						<input type="password" class="bginput" name="passwordconfirm" size="25" maxlength="50" value="$passwordconfirm" />
+					</td>
+				</tr>
+				</table>
+			</fieldset>
+
+			<fieldset class="fieldset">
+				<legend>$vbphrase[username]</legend>
+				<table cellpadding="0" cellspacing="$stylevar[formspacer]" border="0" width="400">
+				<tr>
+					<td>
+						$vbphrase[username]:<br />
+						<input class="bginput" id="regusername" type="text" name="username" size="45" maxlength="$vboptions[maxuserlength]" value="$username" /><img src="$vboptions[cleargifurl]" id="reg_verif_image" onclick="return toggle_collapse('dialog_box')" style="display:none;" alt="" />
+						<div id="collapseobj_dialog_box"><div id="reg_verif_div" style="display:none;"></div></div>
+						<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/vbulletin_ajax_nameverif.js?v=$vboptions[simpleversion]"></script>
+						<script type="text/javascript">
+						<!--
+						regname_verif = new vB_AJAX_NameVerify('regname_verif', 'regusername');
+						//-->
+						</script>
+					</td>
+				</tr>
+				</table>
+			</fieldset>
+
+			$human_verify
+
+			<div class="smallfont" style="margin-bottom:$stylevar[formspacer]px">
+				<label><input type="checkbox" name="fdwagree" value="1"<if condition="$agree"> checked="checked"</if> />
+				<phrase 1="$vboptions[bbtitle]">$vbphrase[read_agree_abide_by_rules]</phrase></label>
+				(<a href="$tosur">$vbphrase[terms_of_service]</a>)
+			</div>
+		</div>
+	</div>
+	<div style="margin-top:$stylevar[cellpadding]px">
+		<input type="submit" class="button" value="$vbphrase[complete_registration]" accesskey="s" />
+		<input type="reset" class="button" name="Reset" value="$vbphrase[reset_fields]" />
+	</div>
+	</td>
+</tr>
+</table>
+<br />
+</form>
+
+$footer
+
+</body>
+</html>]]></template>
+		<template name="register_fdw_ajax" templatetype="template" date="1300315040" username="Admin" version="1.5.5"><![CDATA[<script type="text/javascript">
+fdwAjaxEval.loadScripts(["$vboptions[fdw_plugin_static]clientscript/fdw_ajax_email.js", "$vboptions[fdw_plugin_static]clientscript/vbulletin_ajax_nameverif.js?v=$vboptions[simpleversion]", "$vboptions[fdw_plugin_static]clientscript/vbulletin_md5.js?v=$vboptions[simpleversion]"]);
+</script>
+<script type="text/javascript">
+function verify_passwords(password1, password2, frm)
+{
+    // do various checks, this will save people noticing mistakes on next page
+    if (password1.value == '' || password2.value == '')
+    {
+        alert('$vbphrase[fill_out_both_password_fields]');
+        return false;
+    }
+    else if (password1.value != password2.value)
+    {
+        alert('$vbphrase[entered_passwords_do_not_match]');
+        return false;
+    }
+    else
+    {
+        var junk_output;
+
+        md5hash(password1, document.forms.register.password_md5, junk_output, $show[nopasswordempty]);
+        md5hash(password2, document.forms.register.passwordconfirm_md5, junk_output, $show[nopasswordempty]);
+
+        return fdwRegisterForm.submit(frm);
+    }
+    return false;
+}
+</script>
+
+<form action="register.php?do=addmember" name="register" method="post" onsubmit="return verify_passwords(password, passwordconfirm, this);">
+<input type="hidden" name="s" value="$session[sessionhash]" />
+<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+<input type="hidden" name="do" value="addmember" />
+<input type="hidden" name="url" value="$url" />
+<input type="hidden" name="agree" value="$agree" />
+<input type="hidden" name="password_md5" />
+<input type="hidden" name="passwordconfirm_md5" />
+<input type="hidden" name="dst" value="2" />
+<input type="hidden" name="timezoneoffset" value="$timezonesel" />
+$customfields_other
+$customfields_profile
+$customfields_option
+
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0">
+<tr>
+	<td class="tcat"><phrase 1="$vboptions[bbtitle]">$vbphrase[register_at_x]</phrase></td>
+</tr>
+<tr>
+	<td class="panelsurround" align="center">
+	<div class="panel">
+		<div>
+			<div class="smallfont" style="margin-bottom:$stylevar[formspacer]px">
+				<strong>$vbphrase[email_address]</strong>:<br />
+				<input class="bginput" id="regemail" type="text" name="email" size="50" maxlength="50" value="$email" />
+				<script type="text/javascript">
+					fdwAjaxEval.waitObject("fdw_AJAX_EmailVerify", function() {
+						fdw_AJAX_EmailVerify.prototype.cleargif = "$vboptions[cleargifurl]";
+						var emailVerify = new fdw_AJAX_EmailVerify("regemail");
+						document.getElementById("regemail").onblur = function() {
+							var reguser = document.getElementById("reguser");
+							if (!reguser) {
+								var currentemail = document.getElementById("regemail").value;
+								document.getElementById("regusername").value = currentemail.split("@")[0];
+							}
+						}
+					});
+				</script>
+			</div>
+
+			<fieldset class="fieldset">
+				<legend>$vbphrase[password]</legend>
+				<table cellpadding="0" cellspacing="$stylevar[formspacer]" border="0" width="400">
+				<tr>
+					<td>
+						$vbphrase[password]:<br />
+						<input type="password" class="bginput" name="password" size="25" maxlength="50" value="$password" />
+					</td>
+					<td>
+						$vbphrase[confirm_password]:<br />
+						<input type="password" class="bginput" name="passwordconfirm" size="25" maxlength="50" value="$passwordconfirm" />
+					</td>
+				</tr>
+				</table>
+			</fieldset>
+
+			<fieldset class="fieldset">
+				<legend>$vbphrase[username]</legend>
+				<table cellpadding="0" cellspacing="$stylevar[formspacer]" border="0" width="400">
+				<tr>
+					<td>
+						$vbphrase[username]:<br />
+						<input class="bginput" id="regusername" type="text" name="username" size="45" maxlength="$vboptions[maxuserlength]" value="$username" /><img src="$vboptions[cleargifurl]" id="reg_verif_image" onclick="return toggle_collapse('dialog_box')" style="display:none;" alt="" />
+						<div id="collapseobj_dialog_box"><div id="reg_verif_div" style="display:none;"></div></div>
+						<script type="text/javascript">
+						fdwAjaxEval.waitObject("vB_AJAX_NameVerify", function() {
+							regname_verif = new vB_AJAX_NameVerify('regname_verif', 'regusername');
+						});
+						</script>
+					</td>
+				</tr>
+				</table>
+			</fieldset>
+
+			$human_verify
+
+			<div class="smallfont" style="margin-bottom:$stylevar[formspacer]px">
+				<label><input type="checkbox" name="fdwagree" value="1"<if condition="$agree"> checked="checked"</if> />
+				<phrase 1="$vboptions[bbtitle]">$vbphrase[read_agree_abide_by_rules]</phrase></label>
+				(<a href="$tosur">$vbphrase[terms_of_service]</a>)
+			</div>
+		</div>
+	</div>
+	<div style="margin-top:$stylevar[cellpadding]px">
+		<input type="submit" class="button" value="$vbphrase[complete_registration]" id="register_submit" accesskey="s" />
+		<input type="reset" class="button" name="Reset" value="$vbphrase[reset_fields]" />
+	</div>
+	</td>
+</tr>
+</table>
+</form>]]></template>
+		<template name="usercp_identengine" templatetype="template" date="1300315089" username="Admin" version="1.5.5"><![CDATA[<link rel="stylesheet" type="text/css" href="$vboptions[fdw_plugin_static]clientscript/ident/ident.css" media="screen" />
+<!-- Ident Engine. License: $vboptions[fdw_plugin_static]clientscript/ident/license.html -->
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/ident-0.1.min.js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/ident-profile-0.1.min.js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/ident-ufxtract-parser-0.1.min.js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/ident-twitter-parser-0.1.min.js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/web-address.min.js"></script>
+<script type="text/javascript">
+	var fdwIdentEngine = {
+		username: "$fdwinfo[username]",
+		misc: "$stylevar[imgdir_misc]",
+		vbphrase: {
+			'search': "$vbphrase[search]",
+			'stop': "$vbphrase[stop]",
+			'search_finalized': "$vbphrase[search_finalized]",
+			'searching_details': "$vbphrase[searching_details]",
+			'search_stopped': "$vbphrase[search_stopped]",
+			'error': "$vbphrase[error]"
+                },
+		fields: [$fdwinfo[fields]]
+	};
+</script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/$fdwinfo[script].js"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/ident/fdw_search_ident.js"></script>]]></template>
+		<template name="usercp_ident_avatar" templatetype="template" date="1284731003" username="Admin" version="1.5.0"><![CDATA[<fieldset class="fieldset">
+<legend>$vbphrase[search_extern]</legend>
+$vbphrase[search_extern_desc]
+<div style="margin-left:10px">
+	<div id="ident_ex">i.e. twitter $bbuserinfo[username]</div>
+	<div id="ident_res" style="display:none"></div>
+	<input id="ident_text" type="text" class="bginput" value="" size="25" />
+	<button type="button" id="ident_btn">$vbphrase[search]</button>
+<div id="foundphotos"></div>
+</div></fieldset>]]></template>
+		<template name="userfield_fdw_optional" templatetype="template" date="1284325712" username="Admin" version="1.0.0"><![CDATA[<if condition="!empty($optional)">
+<input type="hidden" name="userfield[$optionalname]" value="$optional" />
+</if>]]></template>
+		<template name="userfield_fdw_single" templatetype="template" date="1284328459" username="Admin" version="1.0.0"><![CDATA[<if condition="in_array($profilefield['type'], array('textarea', 'input')) AND !empty($vbulletin->userinfo[$profilefieldname])">
+<input type="hidden" name="userfield[$profilefieldname]" value="$bbuserinfo[$profilefieldname]" />
+</if>
+<if condition="(in_array($profilefield['type'], array('select', 'select_multiple')) AND !empty($selected)) OR (in_array($profilefield['type'], array('radio', 'checkbox')) AND !empty($checked))">
+<input type="hidden" name="userfield[$profilefieldname]<if condition="in_array($profilefield['type'], array('select_multiple', 'checkbox'))">[]</if>" value="$key" />
+</if>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Email validation</title>
+			<hookname>ajax_complete</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'verifyemail' AND $vbulletin->options['fdw_register_active'])
+{
+	$vbulletin->input->clean_gpc('p', 'email', TYPE_STR);
+	$vbulletin->GPC['email'] = convert_urlencoded_unicode($vbulletin->GPC['email']);
+	
+	$userdata =& datamanager_init('User', $vbulletin, ERRTYPE_ARRAY);
+	$userdata->set('email', $vbulletin->GPC['email']);
+	if (!empty($userdata->errors))
+	{
+		$status = "invalid";
+		$message = "";
+		$image = $stylevar['imgdir_misc'] . "/cross.png";
+		foreach ($userdata->errors AS $index => $error)
+		{
+			$message .= "$error";
+		}
+	}
+	else
+	{
+		$status = "valid";
+		$image = $stylevar['imgdir_misc'] . "/tick.png";
+		if (!function_exists('fetch_phrase'))
+		{
+			require_once(DIR . '/includes/functions_misc.php');
+		}
+		$message = fetch_phrase('email_is_valid', 'register', '', false);
+	}
+
+	$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+	$xml->add_group('response');
+		$xml->add_tag('status', $status);
+		$xml->add_tag('image', $image);
+		$xml->add_tag('message', $message);
+	$xml->close_group();
+	$xml->print_xml();
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="4">
+			<title>FDW Register: Cache templates</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'])
+{
+	if (THIS_SCRIPT == 'profile')
+	{
+		if ($vbulletin->options['fdw_register_ident'])
+		{
+			$globaltemplates = array_merge($globaltemplates, array(
+				'usercp_identengine',
+				'usercp_ident_avatar'
+			));
+		}
+	}
+
+	if (THIS_SCRIPT == 'register')
+	{
+		$globaltemplates = array_merge($globaltemplates, array(
+			'userfield_fdw_single',
+			'userfield_fdw_optional',
+			'register_fdw'
+		));
+		
+		if ($vbulletin->GPC['ajax'] AND $vbulletin->options['fdw_register_ajax'])
+		{
+			$globaltemplates[] = 'register_fdw_ajax';
+			if ($vbulletin->options['hv_type'] AND in_array('humanverify', $globaltemplates))
+			{
+				$globaltemplates[] = 'humanverify_' . strtolower($vbulletin->options['hv_type']) . '_ajax';
+			}
+		}
+	}
+
+	if ($vbulletin->session->vars['profileupdate'] AND THIS_SCRIPT != 'login' AND THIS_SCRIPT != 'profile')
+	{
+		$fdwprofileupdate = $vbulletin->session->vars['profileupdate'];
+		$vbulletin->session->vars['profileupdate'] = 0;
+		$globaltemplates[] = 'navbar_fdw_register';
+	}
+
+	if ($vbulletin->options['fdw_register_ajax'])
+	{
+		$globaltemplates[] = 'navbar_fdw_regajax';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Skip required fields</title>
+			<hookname>error_fetch</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'register' AND $vbulletin->options['fdw_register_active'])
+{
+	if (in_array($args[0], array('regexincorrect', 'required_field_x_missing_or_invalid')))
+	{
+		$args[0] = 'fdw_register_skip';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Show notice</title>
+			<hookname>global_setup_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'])
+{
+	$show['navbar_hook'] = '';
+	if (isset($fdwprofileupdate))
+	{
+		$vbulletin->session->vars['profileupdate'] = $fdwprofileupdate;
+		if (!function_exists('fetch_phrase'))
+		{
+			require_once(DIR . '/includes/functions_misc.php');
+		}
+		$vbphrase['updateprofilefields'] = fetch_phrase('updateprofilefields', 'error', '', false);
+		
+		eval('$show[\'navbar_hook\'] .= "' . fetch_template('navbar_fdw_register') . '";');
+	}
+
+	if ($vbulletin->options['fdw_register_ajax'])
+	{
+		$show['inheader'] = false;
+		eval('$show[\'navbar_hook\'] .= "' . fetch_template('navbar_fdw_regajax') . '";');
+		$show['inheader'] = true;
+		eval('$headinclude .= "' . fetch_template('navbar_fdw_regajax') . '";');
+	}
+
+	if (!empty($show['navbar_hook']))
+	{
+		$vbulletin->templatecache['navbar'] .= ' $show[navbar_hook]';
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Ident Engine</title>
+			<hookname>profile_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'] AND $vbulletin->options['fdw_register_ident'])
+{
+	if ($templatename == 'modifyavatar' AND $show['customavatar_url'])
+	{
+		$fdwinfo = array(
+			'username' => str_replace(array("\n", "\r", '"'), array('\n', '\r', '\\"'), $vbulletin->userinfo['username']),
+			'script' => 'fdw_search_avatar',
+			'fields' => ''
+		);
+		eval('$headinclude .= "' . fetch_template('usercp_identengine') . '";');
+		eval('$fdwidentengine = "' . fetch_template('usercp_ident_avatar') . '";');
+		
+		if ($vbulletin->options['fdw_register_template'])
+		{
+			$template =& $vbulletin->templatecache[$templatename];
+			$template = substr_replace($template, '$fdwidentengine', strrpos($template, '</fieldset>') + 11, 0);
+		}
+	}
+
+	if ($templatename == 'modifyprofile')
+	{
+		$fdwinfo = array(
+			'username' => str_replace(array("\n", "\r", '"'), array('\n', '\r', '\\"'), $vbulletin->userinfo['username']),
+			'script' => 'fdw_search_profile',
+			'fields' => array()
+		);
+		
+		$fdwinfo['raw_fields'] = explode('/', $vbulletin->options['fdw_register_fields']);
+		foreach ($fdwinfo['raw_fields'] AS $fdwident_field)
+		{
+			$fdwident_option = explode('|', trim($fdwident_field));
+			$fdwinfo['fields'][] = '{id:"' . $fdwident_option[0] . '",field:"' . $fdwident_option[1] . '"}';
+		}
+		$fdwinfo['fields'] = implode(',', $fdwinfo['fields']);
+		
+		eval('$headinclude .= "' . fetch_template('usercp_identengine') . '";');
+		eval('$fdwidentengine = "' . fetch_template('usercp_ident_avatar') . '";');
+		
+		if ($vbulletin->options['fdw_register_template'])
+		{
+			$template =& $vbulletin->templatecache[$templatename];
+			$template = substr_replace($template, '$fdwidentengine', strpos($template, '<fieldset'), 0);
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Register complete / Redirect</title>
+			<hookname>register_addmember_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'] AND ($vbulletin->GPC['ajax'] AND $vbulletin->options['fdw_register_ajax']) OR $vbulletin->options['fdw_register_url'])
+{
+	if ($vbulletin->options['verifyemail'])
+	{
+		$redirecturl = create_full_url($vbulletin->url . $vbulletin->session->vars['sessionurl_q']);
+		$message = fetch_error('registeremail', $username, $email, $redirecturl);
+	}
+	else
+	{
+		if ($vbulletin->options['moderatenewmembers'])
+		{
+			$message = fetch_error('moderateuser', $username, $vbulletin->options['forumhome'], $vbulletin->session->vars['sessionurl_q']);
+		}
+		else
+		{
+			$message = fetch_error('registration_complete', $username, $vbulletin->session->vars['sessionurl'], $vbulletin->options['bburl'] . '/' . $vbulletin->options['forumhome'] . '.php');
+		}
+	}
+	
+	if ($vbulletin->GPC['ajax'] AND $vbulletin->options['fdw_register_ajax'])
+	{
+		exec_shut_down();
+		
+		require_once(DIR . '/includes/class_xml.php');
+		$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+		$xml->add_tag('welcome', $message, array('url' => $vbulletin->options['fdw_register_url']));
+		$xml->print_xml();
+		exit;
+	}
+	else
+	{
+		$vbulletin->url = $vbulletin->options['fdw_register_url'];
+		eval(print_standard_redirect($message, false));
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Skip required field errors</title>
+			<hookname>register_addmember_process</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'])
+{
+	foreach($userdata->errors AS $key => $error)
+	{
+		if ($error == fetch_phrase('fdw_register_skip', 'error', '', false))
+		{
+			unset($userdata->errors[$key]);
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Register form</title>
+			<hookname>register_form_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'])
+{
+	$tosurl = ($vbulletin->options['tosurl']) ? $vbulletin->options['tosurl'] : 'register.php?do=rules';
+	foreach(array('other', 'profile', 'option') AS $varname)
+	{
+		${"customfields_$varname"} = str_replace(array('<tr>', '</tr>'), '', ${"customfields_$varname"});
+	}
+
+	if ($vbulletin->GPC['ajax'] AND $vbulletin->options['fdw_register_ajax'])
+	{
+		eval('$registerbits = "' . fetch_template('register_fdw_ajax') . '";');
+		
+		require_once(DIR . '/includes/class_xml.php');
+		$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+		$xml->add_tag('register', $registerbits);
+		$xml->print_xml();
+		exit;
+	}
+
+	eval('print_output("' . fetch_template('register_fdw') . '");');
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Register form (Userfields)</title>
+			<hookname>register_form_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'])
+{
+	$templates =& $vbulletin->templatecache;
+
+	$templates['userfield_wrapper'] = '$custom_field_holder';
+	$templates['userfield_select'] = $templates['userfield_select_multiple'] = '$selectbits $optionalfield';
+	$templates['userfield_radio'] = '$radiobits $optionalfield';
+	$templates['userfield_select_option'] = $templates['userfield_radio_option'] = $templates['userfield_textbox'] =
+	$templates['userfield_checkbox_option'] = $templates['userfield_textarea'] = $templates['userfield_fdw_single'];
+	$templates['userfield_optional_input'] = $templates['userfield_fdw_optional'];
+
+	if ($vbulletin->GPC['ajax'] AND $vbulletin->options['fdw_register_ajax'])
+	{
+		if (strtolower($vbulletin->options['hv_type']) == 'recaptcha')
+		{
+			$templates['humanverify_recaptcha'] = $templates['humanverify_recaptcha_ajax'];
+		}
+		if (!empty($errorlist) AND $show['errors'])
+		{
+			if (fetch_require_hvcheck('register'))
+			{
+				$templates['humanverify_' . strtolower($vbulletin->options['hv_type'])] =
+					$templates['humanverify_' . strtolower($vbulletin->options['hv_type']) . '_ajax'];
+				require_once(DIR . '/includes/class_humanverify.php');
+				$verify =& vB_HumanVerify::fetch_library($vbulletin);
+				$human_verify = $verify->output_token();
+			}
+			
+			$message = str_replace('<li>', ' - ', $errorlist);
+			$message = str_replace('</li>', '<br />', $message);
+			
+			require_once(DIR . '/includes/class_xml.php');
+			$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+			$xml->add_group('root');
+				$xml->add_tag('error', $vbphrase['errors_occurred_during_registration'] . '<br />' . $message);
+				$xml->add_tag('humanverify', $human_verify);
+			$xml->close_group();
+			
+			$xml->print_xml();
+			exit;
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Register: Rules Location</title>
+			<hookname>register_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_register_active'])
+{
+	$vbulletin->options['usereferrer'] = $vbulletin->options['reqbirthday'] = false;
+
+	if ($_REQUEST['do'] == 'signup')
+	{
+		$_REQUEST['do'] = 'register';
+	}
+
+	if ($_REQUEST['do'] == 'register')
+	{
+		$_POST['agree'] = true;
+	}
+
+	if ($_POST['do'] == 'addmember')
+	{
+		$vbulletin->input->clean_array_gpc('p', array(
+			'fdwagree'   => TYPE_BOOL
+		));
+		if (!$vbulletin->GPC['fdwagree'])
+		{
+			eval(standard_error(fetch_error('register_not_agreed', $vbulletin->options['forumhome'], $vbulletin->session->vars['sessionurl_q'])));
+		}
+		$_POST['emailconfirm'] = $_POST['email'];
+		
+		if ($vbulletin->GPC['ajax'])
+		{
+			function convert_urlencoded_unicode_byref(&$value) {
+				$value = convert_urlencoded_unicode($value);
+			}
+			array_walk_recursive($_POST, 'convert_urlencoded_unicode_byref');
+		}
+	}
+
+	if ($_REQUEST['do'] == 'rules')
+	{
+		$show['coppa'] = false;
+		$url =& $vbulletin->url;
+		eval('print_output("' . fetch_template('register_rules') . '");');
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="fdw_register_skip" date="1284321078" username="Admin" version="1.0.0"><![CDATA[fdw-register-error-skip]]></phrase>
+		</phrasetype>
+		<phrasetype name="Register" fieldname="register">
+			<phrase name="email_is_valid" date="1284358337" username="Admin" version="1.0.0"><![CDATA[El email es válido]]></phrase>
+		</phrasetype>
+		<phrasetype name="User Tools (global)" fieldname="user">
+			<phrase name="avatar_from_remote" date="1284705968" username="Admin" version="1.5.0"><![CDATA[Obtener imágenes desde tus cuentas públicas en redes sociales]]></phrase>
+			<phrase name="error" date="1284704058" username="Admin" version="1.5.0"><![CDATA[Error]]></phrase>
+			<phrase name="search_extern" date="1284730882" username="Admin" version="1.5.0"><![CDATA[Perfiles externos]]></phrase>
+			<phrase name="search_extern_desc" date="1284731906" username="Admin" version="1.5.0"><![CDATA[Buscar los datos en sus perfiles públicos de redes sociales externas]]></phrase>
+			<phrase name="search_finalized" date="1284703765" username="Admin" version="1.5.0"><![CDATA[Búsqueda de perfiles externos - Finalizada]]></phrase>
+			<phrase name="search_stopped" date="1284703829" username="Admin" version="1.5.0"><![CDATA[Búsqueda de perfiles externos - Detenida]]></phrase>
+			<phrase name="searching_details" date="1284703800" username="Admin" version="1.5.0"><![CDATA[Buscando datos de perfiles externos...]]></phrase>
+			<phrase name="stop" date="1284703716" username="Admin" version="1.5.0"><![CDATA[Detener]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_register_active_desc" date="1284425683" username="Admin" version="1.0.0"><![CDATA[Activar las modificaciones en el registro de usuarios]]></phrase>
+			<phrase name="setting_fdw_register_active_title" date="1284425683" username="Admin" version="1.0.0"><![CDATA[Activar/Desactivar]]></phrase>
+			<phrase name="setting_fdw_register_ajax_desc" date="1284391211" username="Admin" version="1.0.0"><![CDATA[Activar carga de formulario de registro mediante Ajax]]></phrase>
+			<phrase name="setting_fdw_register_ajax_title" date="1284391211" username="Admin" version="1.0.0"><![CDATA[Ajax]]></phrase>
+			<phrase name="setting_fdw_register_fields_desc" date="1284743470" username="Admin" version="1.5.0"><![CDATA[Escriba los campos donde serán almacenados los datos obtenidos mediante Ident Engine. El formato debe ser de selector|variable y los campos deben estar separados por una barra (/)<br /><br />Ejemplo: #ctb_field1|fn.value/#ctb_field2|note.0.value]]></phrase>
+			<phrase name="setting_fdw_register_fields_title" date="1284743470" username="Admin" version="1.5.0"><![CDATA[Campos]]></phrase>
+			<phrase name="setting_fdw_register_ident_desc" date="1284706418" username="Admin" version="1.5.0"><![CDATA[Activar Ident Engine]]></phrase>
+			<phrase name="setting_fdw_register_ident_title" date="1284706418" username="Admin" version="1.5.0"><![CDATA[Ident Engine]]></phrase>
+			<phrase name="setting_fdw_register_template_desc" date="1284706494" username="Admin" version="1.5.0"><![CDATA[Modificar automáticamente las plantillas para insertar el formulario de Ident Engine]]></phrase>
+			<phrase name="setting_fdw_register_template_title" date="1284706494" username="Admin" version="1.5.0"><![CDATA[Plantillas]]></phrase>
+			<phrase name="setting_fdw_register_url_desc" date="1300309397" username="Admin" version="1.5.5"><![CDATA[Redirigir a esta URL luego del registro]]></phrase>
+			<phrase name="setting_fdw_register_url_title" date="1300309397" username="Admin" version="1.5.5"><![CDATA[Redirección]]></phrase>
+			<phrase name="settinggroup_fdw_register" date="1284391164" username="Admin" version="1.0.0"><![CDATA[Simple Sign Up]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_register" displayorder="500">
+			<setting varname="fdw_register_active" displayorder="5">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_register_ajax" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_register_ident" displayorder="30">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_register_template" displayorder="40">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_register_fields" displayorder="50">
+				<datatype>free</datatype>
+				<optioncode>textarea</optioncode>
+				<defaultvalue>#cta_field1|note.0.value/
+#ctb_field2|adr.0.locality/
+#cta_field4|title.0.value/
+#ctb_field5|fn.value/
+#ctb_field6|adr.0.country-name/
+#ctb_field7|identity.delicious/
+#ctb_field8|identity.flickr/
+#ctb_field9|identity.facebook/
+#ctb_field10|identity.twitter/
+#ctb_field11|identity.youtube/
+#ctb_field12|identity.myspace/
+#ctb_field13|identity.hi5/</defaultvalue>
+			</setting>
+			<setting varname="fdw_register_url" displayorder="60">
+				<datatype>free</datatype>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

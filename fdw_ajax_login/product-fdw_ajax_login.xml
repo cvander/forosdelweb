@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_ajax_login" active="1">
+	<title>Login (Ajax)</title>
+	<description>Cargar formulario de login vía Ajax</description>
+	<version>1.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+		<template name="login_form" templatetype="template" date="1294343013" username="Admin" version="1.0.0"><![CDATA[<script type="text/javascript">fdwAjaxEval.loadScript("$vboptions[fdw_plugin_static]clientscript/vbulletin_md5.js?v=$vboptions[simpleversion]", true);</script>
+<div class="menucontent" style="width: 200px">
+	<form action="login.php?do=login" method="post" onsubmit="md5hash(vb_login_password, vb_login_md5password, vb_login_md5password_utf, $show[nopasswordempty])">
+		<input type="hidden" name="s" value="$session[sessionhash]" />
+		<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+		<input type="hidden" name="do" value="login" />
+		<input type="hidden" name="vb_login_md5password" />
+		<input type="hidden" name="vb_login_md5password_utf" />
+		
+		<p style="text-align:left">
+			<label for="navbar_username" style="display:block;width:100px;float:left">$vbphrase[username]: </label>
+			<input type="text" style="" name="vb_login_username" id="navbar_username" size="10" accesskey="u" tabindex="101" value="$vbphrase[username]" onfocus="if (this.value == '$vbphrase[username]') this.value = '';" />
+			<div class="clear"></div>
+		</p>
+		<p style="text-align:left">
+			<label for="navbar_password" style="display:block;width:100px;float:left">$vbphrase[password]: </label>
+			<input type="password" name="vb_login_password" id="navbar_password" size="10" tabindex="102" />
+			<div class="clear"></div>
+		</p>
+		<p>
+			<label for="cb_cookieuser_navbar"><input type="checkbox" name="cookieuser" value="1" tabindex="103" id="cb_cookieuser_navbar" accesskey="c" />$vbphrase[remember_me]</label>
+			<div class="clear"></div>
+		</p>
+		<div><input type="submit" value="$vbphrase[log_in]" tabindex="104" title="$vbphrase[enter_username_to_login_or_register]" accesskey="s" /></div>
+		<p><a href="login.php?$session[sessionurl]do=lostpw">$vbphrase[forgotten_your_password]</a></p>
+	</form>
+</div>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Login: Cache template</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'misc' AND $_REQUEST['do'] == 'login' AND $vbulletin->GPC['ajax'])
+{
+	$globaltemplates[] = 'login_form';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Login: Form (Ajax)</title>
+			<hookname>misc_start</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'login' AND $vbulletin->GPC['ajax'])
+{
+	eval('$loginbit = "' . fetch_template('login_form') . '";');
+	
+	require_once(DIR . '/includes/class_xml.php');
+	$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+	$xml->add_tag('login', $loginbit);
+	$xml->print_xml();
+	exit;
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+	</phrases>
+	<options>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

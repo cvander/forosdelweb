@@ -1,0 +1,1946 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_forumhome" active="1">
+	<title>Portada personalizada</title>
+	<description>Listado de foros ordenados por actividad</description>
+	<version>1.6.2</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+		<dependency dependencytype="product" parentproductid="fdw_plugin_tools" minversion="1.0.1" maxversion="" />
+		<dependency dependencytype="product" parentproductid="fdw_user_stats" minversion="1.0.0" maxversion="" />
+	</dependencies>
+	<codes>
+		<code version="1.0.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwforum (
+		userid INT UNSIGNED NOT NULL,
+		forumid INT UNSIGNED NOT NULL,
+		fdwcolorid TINYINT UNSIGNED NOT NULL,
+		small TINYINT UNSIGNED NOT NULL,
+		relevance INT UNSIGNED NOT NULL,
+		displayorder SMALLINT UNSIGNED NOT NULL,
+		PRIMARY KEY(userid, forumid)
+	)
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwuser (
+		userid INT UNSIGNED NOT NULL,
+		forumcache INT UNSIGNED NOT NULL,
+		PRIMARY KEY (userid)
+	)
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwcolor (
+		fdwcolorid TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+		name VARCHAR(50) NOT NULL,
+		class VARCHAR(50) NOT NULL,
+		PRIMARY KEY (fdwcolorid)
+	)
+");
+$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwsession (
+		sessionhash CHAR(32) NOT NULL,
+		userid INT UNSIGNED NOT NULL,
+		fdwforum MEDIUMTEXT,
+		PRIMARY KEY (sessionhash)
+	)
+");
+$db->query_write("INSERT INTO " . TABLE_PREFIX . "fdwcolor (name, class) VALUES ('Blue', 'blue'), ('Black', 'black'), ('Pink', 'pink'), ('Green', 'green'), ('Orange', 'orange')");
+
+require_once(DIR . '/includes/functions_fdwforum.php');
+build_fdwcolor_cache();]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwcolor");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwforum");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwuser");
+$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwsession");]]></uninstallcode>
+		</code>
+		<code version="1.0.1">
+			<installcode><![CDATA[$db->query_write("ALTER TABLE " . TABLE_PREFIX . "fdwforum ADD shorttitle VARCHAR(100) NOT NULL DEFAULT ''");]]></installcode>
+			<uninstallcode />
+		</code>
+		<code version="1.5.0">
+			<installcode><![CDATA[$db->query_write("
+	CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "fdwthread (
+		forumid INT UNSIGNED NOT NULL,
+		threadids MEDIUMTEXT,
+		forumcache INT UNSIGNED NOT NULL,
+		PRIMARY KEY (forumid)
+	)
+");]]></installcode>
+			<uninstallcode><![CDATA[$db->query_write("DROP TABLE IF EXISTS " . TABLE_PREFIX . "fdwthread");]]></uninstallcode>
+		</code>
+	</codes>
+	<templates>
+		<template name="footer_fdw" templatetype="template" date="1291759779" username="Admin" version="1.0.0"><![CDATA[<div id="content_footer"><!-- CONTENT FOOTER -->
+	<div id="footer"><!-- FOOTER -->
+		<p class="link_footer">
+			<if condition="$show['contactus']"><a href="$vboptions[contactuslink]" rel="nofollow" accesskey="9">$vbphrase[contact_us]</a> -</if>
+			<if condition="$vboptions['hometitle']"><a href="$vboptions[homeurl]">$vboptions[hometitle]</a> -</if>
+			<if condition="$show['admincplink']"><a href="$admincpdir/index.php$session[sessionurl_q]">$vbphrase[admin]</a> -</if>
+			<if condition="$show['modcplink']"><a href="$modcpdir/index.php$session[sessionurl_q]">$vbphrase[mod]</a> -</if>
+			<if condition="$vboptions['archiveenabled']"><a href="archive/index.php">$vbphrase[archive]</a> -</if>
+			<if condition="$vboptions[privacyurl]"><a href="$vboptions[privacyurl]">$vbphrase[privacy_statement]</a> -</if>
+			<if condition="$vboptions[tosurl]"><a href="$vboptions[tosurl]">$vbphrase[terms_of_service]</a> -</if>
+			<a href="#top" onclick="self.scrollTo(0, 0); return false;">$vbphrase[top]</a>
+		</p>
+		
+		<p class="text_footer">
+			<!-- Do not remove this copyright notice -->
+			$vbphrase[powered_by_vbulletin]
+			<!-- Do not remove this copyright notice -->
+			<!-- Do not remove cronimage or your scheduled tasks will cease to function -->
+			$cronimage
+			<!-- Do not remove cronimage or your scheduled tasks will cease to function -->
+			$vboptions[copyrighttext]
+		</p>
+		<a href="$vboptions[forumhome].php$session[sessionurl_q]" class="logo_footer">$vboptions[bbtitle]</a>
+
+	</div><!-- /FOOTER -->
+</div><!-- /CONTENT FOOTER -->]]></template>
+		<template name="FORUMDISPLAY_fdw" templatetype="template" date="1293940245" username="Admin" version="1.5.0"><![CDATA[$stylevar[htmldoctype]
+<html xmlns="http://www.w3.org/1999/xhtml" dir="$stylevar[textdirection]" lang="$stylevar[languagecode]">
+<head>
+$headinclude
+<title>$vbphrase[fdw_forumhome_mostvisited] - $vboptions[bbtitle]</title>
+<if condition="$show['inlinemod']"><script type="text/javascript" src="clientscript/vbulletin_inlinemod.js?v=$vboptions[simpleversion]"></script></if>
+</head>
+<body>
+$header
+$navbar
+
+<!-- threads list  -->
+
+<form action="inlinemod.php?forumid=$forumid" method="post" id="inlinemodform">
+<input type="hidden" name="url" value="$url" />
+<input type="hidden" name="s" value="$session[sessionhash]" />
+<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+<input type="hidden" name="forumid" value="$forumid" />
+
+<!-- controls above thread list -->
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:3px">
+<tr valign="bottom">
+	<td class="smallfont">&nbsp;</td>
+	<if condition="$pagenav"><td align="$stylevar[right]">$pagenav</td></if>
+</tr>
+</table>
+<!-- / controls above thread list -->
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" style="border-bottom-width:0px">
+<tr>
+	<td class="tcat" width="100%">$vbphrase[forumcustom_title]</span></td>
+</tr>
+</table>
+
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center" id="threadslist">
+<tbody>
+<tr>
+	<if condition="$show['threadicons']">
+		<td class="thead" colspan="2">&nbsp;</td>
+	<else />
+		<td class="thead">&nbsp;</td>
+	</if>
+	<td class="thead" width="<if condition="$show[forumlink]">75%<else />100%</if>">
+		<if condition="$show['threadratings']"><span style="float:$stylevar[right]">$vbphrase[rating]</span></if>
+		$vbphrase[thread] / $vbphrase[thread_starter]
+	</td>
+	<td class="thead" width="150" align="center" nowrap="nowrap"><span style="white-space:nowrap">$vbphrase[last_post]</span></td>
+	<td class="thead" align="center" nowrap="nowrap"><span style="white-space:nowrap">$vbphrase[replies]</span></td>
+	<td class="thead" align="center" nowrap="nowrap"><span style="white-space:nowrap">$vbphrase[views]</span></td>
+	<if condition="$show[forumlink]"><td class="thead" width="25%">$vbphrase[forum]</td></if>
+
+	<if condition="$show['inlinemod']">
+		<if condition="$show['popups']">
+			<td class="vbmenu_control" id="imod" align="center" title="$vbphrase[moderation]"> <script type="text/javascript"> vbmenu_register('imod'); </script> </td>
+		<else />
+			<td class="thead" align="center">
+				<input type="checkbox" name="allbox" id="checkall_all" title="$vbphrase[check_uncheck_all]" onclick="inlineMod.check_all()" />
+			</td>
+		</if>
+	</if>
+</tr>
+</tbody>
+
+<if condition="$show['threads']">
+	<!-- show threads -->
+	<tbody id="threadbits_forum_custom">
+	$threadbits
+	</tbody>
+	<!-- end show threads -->
+<else />
+	<!-- show no threads message -->
+	<tbody>
+	<tr>
+		<td class="alt1" colspan="$show[bottomcolspan]" align="center">
+			<div style="padding: 16px">
+				<strong>$vbphrase[no_posts_in_this_forum]</strong>
+			</div>
+		</td>
+	</tr>
+	</tbody>
+	<!-- end show no threads message -->
+</if>
+</table>
+
+<!-- controls below thread list -->
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:3px">
+<tr valign="top">
+	<td class="smallfont">&nbsp;</td>
+	<if condition="$show['pagenav'] OR $show['inlinemod']">
+		<td align="$stylevar[right]">$pagenav
+		<if condition="$show['inlinemod']">
+			<div class="smallfont" style="text-align:$stylevar[left]; white-space:nowrap; float:$stylevar[right]">
+			<if condition="$show['pagenav']"><br /></if><strong>$vbphrase[moderation]</strong><br />
+			<select name="do">
+				<if condition="$show['deletethread'] OR $show['spamctrls'] OR $show['openthread'] OR $show['approvethread'] OR $show['movethread'] OR $template_hook['inlinemod_thread_bottom']">
+				<optgroup label="$vbphrase[option]">
+					<if condition="$show['deletethread']">
+					<option value="deletethread">$vbphrase[delete_threads]</option>
+					<option value="undeletethread">$vbphrase[undelete_threads]</option>
+					</if>
+					<if condition="$show['spamctrls']">
+					<option value="spamthread">$vbphrase[delete_threads_as_spam]</option>
+					</if>
+					<if condition="$show['openthread']">
+					<option value="open">$vbphrase[open_threads]</option>
+					<option value="close">$vbphrase[close_threads]</option>
+					</if>
+					<if condition="$show['approvethread']">
+					<option value="approvethread">$vbphrase[approve_threads]</option>
+					<option value="unapprovethread">$vbphrase[unapprove_threads]</option>
+					</if>
+					<if condition="$show['movethread']">
+					<option value="stick">$vbphrase[stick_threads]</option>
+					<option value="unstick">$vbphrase[unstick_threads]</option>
+					<option value="movethread">$vbphrase[move_threads]</option>
+					<option value="mergethread">$vbphrase[merge_threads]</option>
+					</if>
+					$template_hook[inlinemod_thread_bottom]
+				</optgroup>
+				</if>
+				<optgroup label="____________________">
+					<option value="viewthread">$vbphrase[view_selected_threads]</option>
+					<option value="clearthread">$vbphrase[clear_thread_list]</option>
+				</optgroup>
+			</select><input type="submit" class="button" id="inlinego" value="$vbphrase[go]" />
+			</div>
+			<script type="text/javascript">
+			<!--
+			inlineMod = new vB_Inline_Mod('inlineMod', 'thread', 'inlinemodform', '$vbphrase[go_x]');
+			//-->
+			</script>
+		</if>
+		</td>
+	</if>
+</tr>
+</table>
+<!-- / controls below thread list -->
+
+</form>
+<br />
+
+<!-- Active Users in this Forum (and sub-forums) and Moderators -->
+
+<form action="fdwforum.php" method="get">
+<input type="hidden" name="s" value="$session[sessionhash]" />
+
+<table class="tborder" cellpadding="$stylevar[cellpadding]" cellspacing="$stylevar[cellspacing]" border="0" width="100%" align="center">
+<tr>
+	<td class="tcat">$vbphrase[display_options]</td>
+</tr>
+<tr valign="top">
+	<td class="alt1">
+
+		<table cellpadding="0" cellspacing="1" border="0">
+		<tr valign="bottom">
+			<td class="smallfont" style="padding-$stylevar[right]:$stylevar[cellpadding]px">
+				<div><label for="sel_mode">$vbphrase[fdw_forumcustom_mode]</label></div>
+				<select name="mode" id="sel_mode">
+					<option value="1"$modeopt[1]>$vbphrase[fdw_forumcustom_showall]</option>
+					<option value="2"$modeopt[2]>$vbphrase[fdw_forumcustom_mode1]</option>
+					<option value="3"$modeopt[3]>$vbphrase[fdw_forumcustom_mode2]</option>
+				</select>
+			</td>
+			<td class="smallfont" style="padding-$stylevar[right]:$stylevar[cellpadding]px">
+				<div><label for="sel_show">$vbphrase[fdw_forumcustom_show]</label></div>
+				<select name="order" id="sel_show">
+					<option value="1"$showopt[1]>$vbphrase[fdw_forumcustom_show1]</option>
+					<option value="2"$showopt[2]>$vbphrase[fdw_forumcustom_show2]</option>
+				</select>
+			</td>
+			<td class="smallfont">
+				<div><label for="sel_pp">$vbphrase[fdw_forumcustom_pp]</label></div>
+				<select name="pp" id="sel_pp">
+					$ppselectoptions
+				</select>
+			</td>
+		</tr>
+		<tr valign="bottom">
+			<td class="smallfont" colspan="2">
+				&nbsp;
+			</td>
+			<td class="smallfont" align="$stylevar[right]" style="padding-top:$stylevar[cellpadding]px">
+				<input type="submit" class="button" value="$vbphrase[show_threads]" />
+			</td>
+		</tr>
+		</table>
+
+	</td>
+</tr>
+</table>
+
+</form>
+<!-- End Active Users in this Forum (and sub-forums) and Moderators -->
+
+<if condition="$show['popups']">
+<br />
+<!-- popup menu contents -->
+
+<!-- inline mod menu -->
+<if condition="$show['inlinemod']">
+	<div class="vbmenu_popup" id="imod_menu" style="display:none" align="$stylevar[left]">
+		$threadadmin_imod_menu_thread
+	</div>
+</if>
+<!-- / inline mod menu -->
+
+<!-- / popup menu contents -->
+</if>
+
+<if condition="$show['ajax_js']">
+	<script type="text/javascript" src="clientscript/vbulletin_ajax_threadslist.js?v=$vboptions[simpleversion]"></script>
+	<script type="text/javascript">
+	<!--
+	vB_AJAX_Threadlist_Init('threadslist');
+	var titlemaxchars = parseInt("$vboptions[titlemaxchars]");
+	//-->
+	</script>
+</if>
+
+<!-- ############## END THREADS LIST ##############  -->
+
+<!-- icon key -->
+<table cellpadding="2" cellspacing="0" border="0">
+<tr>
+	<td><img src="$stylevar[imgdir_statusicon]/thread_new.gif" alt="$vbphrase[new_posts]" border="0" /></td>
+	<td class="smallfont">$vbphrase[new_posts]</td>
+	<if condition="$vboptions['usehotthreads']">
+		<td><img src="$stylevar[imgdir_statusicon]/thread_hot_new.gif" alt="<phrase 1="$vboptions[hotnumberposts]" 2="$vboptions[hotnumberviews]">$vbphrase[more_than_x_replies_or_y_views]</phrase>" border="0" /></td>
+		<td class="smallfont">$vbphrase[hot_thread_with_new_posts]</td>
+	<else />
+		<td colspan="2">&nbsp;</td>
+	</if>
+</tr>
+<tr>
+	<td><img src="$stylevar[imgdir_statusicon]/thread.gif" alt="$vbphrase[no_new_posts]" border="0" /></td>
+	<td class="smallfont">$vbphrase[no_new_posts]</td>
+	<if condition="$vboptions['usehotthreads']">
+		<td><img src="$stylevar[imgdir_statusicon]/thread_hot.gif" alt="<phrase 1="$vboptions[hotnumberposts]" 2="$vboptions[hotnumberviews]">$vbphrase[more_than_x_replies_or_y_views]</phrase>" border="0" /></td>
+		<td class="smallfont">$vbphrase[hot_thread_with_no_new_posts]</td>
+	<else />
+		<td colspan="2">&nbsp;</td>
+	</if>
+</tr>
+<tr>
+	<td><img src="$stylevar[imgdir_statusicon]/thread_lock.gif" alt="$vbphrase[closed_thread]" border="0" /></td>
+	<td class="smallfont">$vbphrase[thread_is_closed]</td>
+	<if condition="$show['dotthreads']">
+		<td><img src="$stylevar[imgdir_statusicon]/thread_dot.gif" alt="$vbphrase[thread_contains_a_message_written_by_you]" border="0" /></td>
+		<td class="smallfont">$vbphrase[you_have_posted_in_this_thread]</td>
+	<else />
+		<td colspan="2">&nbsp;</td>
+	</if>
+</tr>
+</table>
+<!-- / icon key -->
+
+<!-- forum rules & forum jump -->
+<table cellpadding="0" cellspacing="0" border="0" width="100%" align="center">
+<tr valign="bottom">
+	<td width="100%">
+		<div class="smallfont">&nbsp;</div>
+	</td>
+	<td>
+		$forumjump
+	</td>
+</tr>
+</table>
+<!-- / forum rules & forum jump -->
+
+$footer
+</body>
+</html>]]></template>
+		<template name="forumdisplay_headinclude" templatetype="template" date="1299209741" username="Admin" version="1.6.0"><![CDATA[<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_tooltip.js"></script>
+<script type="text/javascript">
+	function tooltipRegister(l, c) { var d = YAHOO.util.Dom.get(c); fdwTooltips.register(l, d.innerHTML); d.parentNode.removeChild(d); };
+	YAHOO.util.Event.onDOMReady(function() {
+		var f = YAHOO.util.Dom.getElementsByClassName("foruminfo", "div"); var fi = null;
+		for (i = 0; fi = f[i]; i++) { var id = fi.id.split("_")[1]; tooltipRegister("forumlink_" + id, fi); }
+	});
+</script>]]></template>
+		<template name="forumdisplay_subforums" templatetype="template" date="1299212766" username="Admin" version="1.6.1"><![CDATA[<div class="content" id="content">
+	<div class="box-$show[color]"><!-- BOX -->
+		<div class="title_box"><!-- TITLE BOX -->
+			<h3>$vbphrase[subforums]: $foruminfo[title]</h3>
+		</div>
+		
+		<ul class="content_box"><!-- CONTENT BOX -->
+			$forumbits
+		</ul><!-- /CONTENT BOX -->
+		<div style="clear:both"></div>
+	</div><!-- /BOX -->
+</div>]]></template>
+		<template name="forumhome_birthdaybit_fdw" templatetype="template" date="1292442877" username="Admin" version="1.1.0"><![CDATA[<if condition="$show['withoutavatar']"><a href="member.php?$session[sessionurl]u=$birthday[userid]">$birthday[username]</a><if condition="$birthday[age]"> ($birthday[age])</if><else /><li>
+	<img src="$birthday[avatarurl]"/>
+	<p><strong><a href="member.php?$session[sessionurl]u=$birthday[userid]">$birthday[username]</a></strong></p>
+	<if condition="$birthday['age']"><p><phrase 1="$birthday[age]">$vbphrase[fdw_x_old]</phrase></p></if>
+	<p>$birthday[location]</p>
+</li></if>]]></template>
+		<template name="FORUMHOME_fdw" templatetype="template" date="1294148597" username="Admin" version="1.5.0"><![CDATA[$stylevar[htmldoctype]
+<html xmlns="http://www.w3.org/1999/xhtml" dir="$stylevar[textdirection]" lang="$stylevar[languagecode]">
+<head>
+	<!-- no cache headers -->
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Expires" content="-1" />
+	<meta http-equiv="Cache-Control" content="no-cache" />
+	<!-- end no cache headers -->
+	<title><phrase 1="$vboptions[bbtitle]">$vbphrase[x_powered_by_vbulletin]</phrase></title>
+	
+	$headinclude
+	$forumhome_markread_script
+<if condition="$show['activeusers']">
+	<script type="text/javascript">var fdwOnline = {"guest":$numberguest,"registered":$numberregistered};</script>
+</if>
+	<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdwforumhome/randcounter.js"></script>
+	<script type="text/javascript">
+		function tooltipRegister(l, c) { var d = YAHOO.util.Dom.get(c); fdwTooltips.register(l, d.innerHTML); d.parentNode.removeChild(d); };
+		YAHOO.util.Event.onDOMReady(function() {
+			var f = YAHOO.util.Dom.getElementsByClassName("foruminfo", "div"); var fi = null;
+			for (i = 0; fi = f[i]; i++) { var id = fi.id.split("_", 2)[1]; if (id == 'special') { id = 'special_' + fi.id.split("_")[2]; }; tooltipRegister("forumlink_" + id, fi); }
+		});
+	</script>
+</head>
+<body>
+$navbar
+
+<!-- main -->
+<if condition="$show['mostvisited']">
+<div class="content" id="content-mostvisited">
+	$forumbits[mostvisited]
+</div>
+</if>
+<div class="content" id="content"><!-- CONTENT -->
+	$forumbits[normal]
+</div><!-- /CONTENT -->
+<div class="content-min" id="content-min">
+	$forumbits[min]
+	<div class="clear"></div>
+</div>
+
+<div id="content_bigfooter"><!-- CONTENT BIGFOOTER -->
+	<div id="bigfooter"><!-- BIGFOOTER -->
+
+		<div class="col_left">
+			<h3><phrase 1="$vboptions[bbtitle]">$vbphrase[x_statistics]</phrase></h3>
+			<ul id="stats_footer">
+				<li><span>$totalthreads</span> $vbphrase[threads]</li>
+				<li><span>$totalposts</span> $vbphrase[posts]</li>
+				<li><span>$numbermembers</span> $vbphrase[members]</li>
+			</ul>
+		</div>
+		
+		<if condition="$show['fdwbirthdays']">
+		<div class="col_center">
+			<div><h3 id="birthdaysalllink"<if condition="$show['fdwbirthdaysall']"> style="cursor:pointer"</if>>$vbphrase[todays_birthdays]<if condition="$show['fdwbirthdaysall']"> ($show[fdwbirthdaysall])</if></h3></div>
+			<ul id="birthday_footer">
+				$birthdaybits
+			</ul>
+			<if condition="$show['fdwbirthdaysall']">
+			<div style="display:none" id="birthdaysall">
+				$birthdaybitsall
+			</div>
+			<script type="text/javascript">YAHOO.util.Event.onDOMReady(function() { tooltipRegister("birthdaysalllink", "birthdaysall"); });</script>
+			</if>
+		</div>
+		</if>
+		
+		<if condition="$show['newusers']">
+		<div class="col_right">
+			<h3>$vbphrase[fdw_newusers]</h3>
+			<ul id="user_footer">
+				$newuserbits
+			</ul>
+		</div>
+		</if>
+		
+		<if condition="$show['activeusers']">
+		<div class="col_right">
+			<div><h3 id="activeuserslink"><a href="online.php$session[sessionurl_q]">$vbphrase[currently_active_users] (<span id="totalonline">$totalonline</span>)</a></h3></div>
+			<ul id="user_footer">
+				$activeuserbits
+			</ul>
+			<div style="display:none" id="recordusers"><phrase 1="$recordusers" 2="$recorddate" 3="$recordtime">$vbphrase[most_users_ever_online_was_x_y_at_z]</phrase></div>
+		</div>
+		<script type="text/javascript">YAHOO.util.Event.onDOMReady(function() { tooltipRegister("activeuserslink", "recordusers"); });</script>
+		</if>
+		
+		<div class="clear"></div>
+	</div><!-- /BIGFOOTER -->
+</div><!-- /CONTENT BIGFOOTER -->
+
+$footer
+
+</body>
+</html>]]></template>
+		<template name="forumhome_forumbit_level1_nopost_fdw" templatetype="template" date="1299208503" username="Admin" version="1.6.0"><![CDATA[<div class="box-$show[color]"><!-- BOX -->
+	<div id="ddbox_$forum[forumid]" class="title_box"><!-- TITLE BOX -->
+		<h3><if condition="$show['forumlink']"><a href="$show[forumlink]">$forum[title]</a><else />$forum[title]</if></h3>
+		<if condition="$vboptions['externalrss']">
+			<a class="rss" title="$vboptions[bbtitle] - $forum[title_clean] - RSS Feed" href="external.php?type=RSS2&amp;forumids=$forum[forumid]">RSS</a>
+		</if>
+	</div><!-- TITLE BOX -->
+	
+	<ul class="content_box"><!-- CONTENT BOX -->
+		$childforumbits
+	</ul><!-- /CONTENT BOX -->
+	<div class="clear"></div>
+</div><!-- /BOX -->]]></template>
+		<template name="forumhome_forumbit_level1_post_fdw" templatetype="template" date="1291403912" username="Admin" version="1.0.0" />
+		<template name="forumhome_forumbit_level2_nopost_fdw" templatetype="template" date="1291403935" username="Admin" version="1.0.0" />
+		<template name="forumhome_forumbit_level2_post_fdw" templatetype="template" date="1294149140" username="Admin" version="1.5.0"><![CDATA[<if condition="!isset($fdwspacer) AND $forum['fdwforum']['level'] == 1"><if condition="$fdwspacer = true"><li class="spacer"></li></if></if><li>
+	<a href="forumdisplay.php?$session[sessionurl]f=$forum[forumid]" class="item_{$forum['fdwforum']['level']}" id="forumlink_$forum[fdwforumid]"><if condition="$forum['fdwforum']['shorttitle']">{$forum['fdwforum']['shorttitle']}<else />$forum[title]</if></a>
+	<div id="foruminfo_$forum[fdwforumid]" class="foruminfo">
+		<if condition="$forum['fdwforum']['shorttitle']"><p><strong>$forum[title]</strong></p></if>
+		<if condition="$show['browsers']"><p><phrase 1="$forum[browsers]">$vbphrase[x_viewing]</phrase></p></if>
+		<p>$forum[replycount] $vbphrase[posts]</p>
+		<if condition="$show['subforums']"><p><strong>$vbphrase[subforums]: </strong>$forum[subforums]</p></if>
+		$forum[lastpostinfo]
+		<p style="text-align:right"><a href="forumdisplay.php?$session[sessionurl]do=markread&forumid=$forum[forumid]" onclick="mark_forum_read($forum[forumid]);return false">$vbphrase[fdw_read]</a></p>
+	</div>
+</li>]]></template>
+		<template name="forumhome_lastpostby_fdw" templatetype="template" date="1291443484" username="Admin" version="1.0.0"><![CDATA[<if condition="$show['lastpostinfo']">
+<p>
+	<strong>$vbphrase[last_post]: </strong><if condition="$lastpostinfo['prefix']">
+		$lastpostinfo[prefix]
+	</if>
+	<a href="showthread.php?$session[sessionurl]goto=newpost&amp;t=$lastpostinfo[lastthreadid]" title="<phrase 1="$lastpostinfo[lastthread]">$vbphrase[go_first_unread_in_thread_x]</phrase>"><strong>$lastpostinfo[trimthread]</strong></a>
+</p>
+</if>
+<p>
+	$lastpostinfo[lastpostdate] <if condition="!$show['detailedtime']">$lastpostinfo[lastposttime]</if>
+</p>]]></template>
+		<template name="forumhome_markread_script_fdw" templatetype="template" date="1294149071" username="Admin" version="1.5.0"><![CDATA[<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/vbulletin_read_marker.js?v=$vboptions[simpleversion]"></script>
+<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_read_marker_home.js?v=$vboptions[simpleversion]"></script>]]></template>
+		<template name="forumhome_registereduser" templatetype="template" date="1291780145" username="Admin" version="1.0.0"><![CDATA[<li><a href="member.php?$session[sessionurl]u=$registered[userid]" title="$registered[username]"><img src="$registered[avatarurl]" /></a></li>]]></template>
+		<template name="forumhome_subforumbit_nopost_fdw" templatetype="template" date="1291994802" username="Admin" version="1.0.1"><![CDATA[<if condition="$forum['statusicon'] == 'new'"><strong></if><a href="forumdisplay.php?$session[sessionurl]f=$forum[forumid]">$forum[title]</a><if condition="$forum['statusicon'] == 'new'"></strong></if>]]></template>
+		<template name="forumhome_subforumbit_post_fdw" templatetype="template" date="1291994794" username="Admin" version="1.0.1"><![CDATA[<if condition="$forum['statusicon'] == 'new'"><strong></if><a href="forumdisplay.php?$session[sessionurl]f=$forum[forumid]">$forum[title]</a><if condition="$forum['statusicon'] == 'new'"></strong></if>]]></template>
+		<template name="headinclude_fdw" templatetype="template" date="1294200835" username="Admin" version="1.5.1"><![CDATA[<meta http-equiv="Content-Type" content="text/html; charset=$stylevar[charset]" />
+<meta name="generator" content="vBulletin $vboptions[templateversion]" />
+<if condition="$show['threadinfo']">
+<meta name="keywords" content="<if condition="$threadinfo['taglist']">$threadinfo[taglist], </if>$threadinfo[prefix_plain_html] $threadinfo[title], $vboptions[keywords]" />
+<meta name="description" content="<if condition="$pagenumber>1"><phrase 1="$pagenumber">$vbphrase[page_x]</phrase>-</if>$threadinfo[prefix_plain_html] $threadinfo[title] $foruminfo[title_clean]" />
+<else /><if condition="$show['foruminfo']">
+<meta name="keywords" content="$foruminfo[title_clean], $vboptions[keywords]" />
+<meta name="description" content="<if condition="$pagenumber>1"><phrase 1="$pagenumber">$vbphrase[page_x]</phrase>-</if>$foruminfo[description_clean]" />
+<else />
+<meta name="keywords" content="$vboptions[keywords]" />
+<meta name="description" content="$vboptions[description]" />
+</if></if>
+
+<script type="text/javascript">
+<!--
+var SESSIONURL = "$session[sessionurl_js]";
+var SECURITYTOKEN = "$bbuserinfo[securitytoken]";
+var IMGDIR_MISC = "$stylevar[imgdir_misc]";
+var vb_disable_ajax = parseInt("$vboptions[disable_ajax]", 10);
+// -->
+</script>
+	<link type="text/css" rel="stylesheet" href="$vboptions[fdw_plugin_static]clientscript/fdwforumhome/style.css" />
+	<script type="text/javascript" src="$stylevar[yuipath]/yahoo-dom-event/yahoo-dom-event.js"></script>
+	<script type="text/javascript" src="$stylevar[yuipath]/dragdrop/dragdrop-min.js"></script>
+	<script type="text/javascript" src="$stylevar[yuipath]/connection/connection-min.js"></script>
+	<script type="text/javascript" src="clientscript/vbulletin_global.js?v=$vboptions[simpleversion]"></script>
+	<if condition="$vboptions['fdw_forumhome_drag'] AND $vbulletin->userinfo['userid']"><script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_storage.js"></script>
+	<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_dragdrop.js"></script></if>
+	<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_menu.js"></script>
+	<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_tooltip.js"></script>
+	<script type="text/javascript" src="$vboptions[fdw_plugin_static]clientscript/fdw_header.js"></script>
+
+<if condition="$vboptions['externalrss']">
+	<link rel="alternate" type="application/rss+xml" title="$vboptions[bbtitle] RSS Feed" href="external.php?type=RSS2" />
+	<if condition="$show['foruminfo'] OR $show['threadinfo']">
+		<link rel="alternate" type="application/rss+xml" title="$vboptions[bbtitle] - $foruminfo[title_clean] - RSS Feed" href="external.php?type=RSS2&amp;forumids=$foruminfo[forumid]" />
+	</if>
+</if>]]></template>
+		<template name="navbar_fdw" templatetype="template" date="1294200908" username="Admin" version="1.5.1"><![CDATA[<div id="content_head"><!-- CONTENT HEAD -->
+	<div id="head"><!-- HEAD -->
+		<div id="select_web">
+			<h1><a href="$vboptions[forumhome].php$session[sessionurl_q]" class="foros_del_web">$vboptions[bbtitle] <span></span></a></h1>
+
+		</div>
+	
+	<div id="search_head"><!-- SEARCH HEAD -->
+		<form action="search.php?do=process" method="post">
+			<input type="hidden" name="do" value="process" />
+			<input type="hidden" name="quicksearch" value="1" />
+			<input type="hidden" name="childforums" value="1" />
+			<input type="hidden" name="exactname" value="1" />
+			<input type="hidden" name="s" value="$session[sessionhash]" />
+			<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+			<input type="text" class="search" name="query" />
+			<input type="submit" class="search_button" value="$vbphrase[go]" />
+		</form>
+	</div><!-- /SEARCH HEAD -->
+	
+	<ul id="nav"><!-- NAV -->
+		<li><a href="#" class="menulink" id="learn">$vbphrase[quick_links]</a></li>
+		<li><a href="$show[nojs_link]#community" rel="nofollow" class="menulink" id="community">$vbphrase[community]</a></li>
+		<if condition="$show['member']"><li><a href="#" class="menulink" id="options">$vbphrase[options]</a></li>
+		<else /><if condition="$show['registerbutton']"><li><a href="register.php$session[sessionurl_q]" rel="nofollow">$vbphrase[register]</a></li></if></if>
+	</ul><!-- /NAV -->
+	
+	<div id="user_head"><!-- USER HEAD -->
+		<if condition="$show['member']">
+		<img src="$bbuserinfo[avatarurl]"/>
+		<p> <if condition="$show['notifications']"><span class="alert"><a id="notifications" href="usercp.php$session[sessionurl_q]">$notifications_total</a></span></if>
+		<a href="member.php?$session[sessionurl]u=$bbuserinfo[userid]" class="user_select" id="userinfo">$bbuserinfo[username]</a></p>
+		<else />
+			<p><a href="#" class="user_select" id="loginform">$vbphrase[log_in]</a></p>
+		</if>
+	</div><!-- /USER HEAD -->
+	
+</div><!-- /HEAD -->
+
+</div><!-- /CONTENT HEAD -->
+<div id="head_spacer" style="display:none"></div><script type="text/javascript">fdwHeader.init();</script>
+
+<if condition="$show['notifications']">
+<div id="notifications_menu" class="headmenu">
+	<ul>
+		$notifications_menubits
+	</ul>
+</div>
+<script type="text/javascript">fdwMenus.register("notifications", true);</script>
+</if>
+<if condition="$show['communitylink']">
+<div id="community_menu" class="headmenu">
+	<ul>
+	<if condition="$show['quick_links_groups']">
+		<li><a href="group.php$session[sessionurl_q]">$vbphrase[social_groups]</a></li>
+	</if>
+	<if condition="$show['quick_links_albums']">
+		<li><a href="album.php$session[sessionurl_q]">$vbphrase[pictures_and_albums]</a></li>
+	</if>
+	<if condition="$bbuserinfo['userid']">
+		<li><a href="profile.php?$session[sessionurl]do=buddylist"><if condition="$show['friends_and_contacts']">$vbphrase[contacts_and_friends]<else />$vbphrase[contacts]</if></a></li>
+	</if>
+	<if condition="$show['memberslist']">
+		<li><a href="memberlist.php$session[sessionurl_q]">$vbphrase[members_list]</a></li>
+	</if>
+	</ul>
+</div>
+<script type="text/javascript">fdwMenus.register("community", true);</script>
+</if>
+<if condition="$show['member']">
+<div id="userinfo_menu" class="headmenu">
+	<ul>
+		<li><a href="member.php?$session[sessionurl]u=$bbuserinfo[userid]">$vbphrase[your_profile]</a></li>
+		<li><a href="#" onclick="window.open('misc.php?$session[sessionurl]do=buddylist&amp;focus=1','buddylist','statusbar=no,menubar=no,toolbar=no,scrollbars=yes,resizable=yes,width=250,height=300'); return false;">$vbphrase[open_contacts]</a></li>
+		<if condition="$show['pmmainlink']"><li><a href="private.php$session[sessionurl_q]" rel="nofollow">$vbphrase[private_messages]</a></li></if>
+		<li><a href="subscription.php$session[sessionurl_q]" rel="nofollow">$vbphrase[subscribed_threads]</a></li>
+		<li><a href="login.php?$session[sessionurl]do=logout&amp;logouthash=$bbuserinfo[logouthash]" onclick="return log_out('$vbphrase[sure_you_want_to_log_out]')">$vbphrase[log_out]</a></li>
+	</ul>
+</div>
+<script type="text/javascript">fdwMenus.register("userinfo", true);</script>
+<div id="options_menu" class="headmenu">
+	<ul>
+		<li><a href="usercp.php$session[sessionurl_q]">$vbphrase[user_control_panel]</a></li>
+		<if condition="$show['siglink']"><li><a href="profile.php?$session[sessionurl]do=editsignature">$vbphrase[edit_signature]</a></li></if>
+		<li><a href="profile.php?$session[sessionurl]do=editprofile">$vbphrase[edit_your_details]</a></li>
+		<li><a href="profile.php?$session[sessionurl]do=editoptions">$vbphrase[edit_options]</a></li>
+	</ul>
+</div>
+<script type="text/javascript">fdwMenus.register("options", true);</script>
+<else />
+<div id="loginform_menu" class="headmenu">
+	<div class="menucontent" style="width: 200px">
+		<script type="text/javascript" src="clientscript/vbulletin_md5.js?v=$vboptions[simpleversion]"></script>
+		<form action="login.php?do=login" method="post" onsubmit="md5hash(vb_login_password, vb_login_md5password, vb_login_md5password_utf, $show[nopasswordempty])">
+			<input type="hidden" name="s" value="$session[sessionhash]" />
+			<input type="hidden" name="securitytoken" value="$bbuserinfo[securitytoken]" />
+			<input type="hidden" name="do" value="login" />
+			<input type="hidden" name="vb_login_md5password" />
+			<input type="hidden" name="vb_login_md5password_utf" />
+			
+			<p style="text-align:left">
+				<label for="navbar_username" style="display:block;width:100px;float:left">$vbphrase[username]: </label>
+				<input type="text" style="" name="vb_login_username" id="navbar_username" size="10" accesskey="u" tabindex="101" value="$vbphrase[username]" onfocus="if (this.value == '$vbphrase[username]') this.value = '';" />
+				<div class="clear"></div>
+			</p>
+			<p style="text-align:left">
+				<label for="navbar_password" style="display:block;width:100px;float:left">$vbphrase[password]: </label>
+				<input type="password" name="vb_login_password" id="navbar_password" size="10" tabindex="102" />
+				<div class="clear"></div>
+			</p>
+			<p>
+				<label for="cb_cookieuser_navbar"><input type="checkbox" name="cookieuser" value="1" tabindex="103" id="cb_cookieuser_navbar" accesskey="c" />$vbphrase[remember_me]</label>
+				<div class="clear"></div>
+			</p>
+			<input type="submit" value="$vbphrase[log_in]" tabindex="104" title="$vbphrase[enter_username_to_login_or_register]" accesskey="s" />
+		</form>
+	</div>
+</div>
+<script type="text/javascript">fdwMenus.register("loginform", true);</script>
+</if>
+<div id="learn_menu" class="headmenu">
+	<ul>
+		<if condition="$vboptions['enablesearches']"><li><a href="search.php?$session[sessionurl]do=getdaily">$vbphrase[todays_posts]</a></li></if>
+		<li><a href="forumdisplay.php?$session[sessionurl]do=markread">$vbphrase[mark_forums_read]</a></li>
+		<if condition="$show['wollink']"><li><a href="online.php$session[sessionurl_q]">$vbphrase[whos_online]</a></li></if>
+		<if condition="$show['member']"><li><a href="search.php?$session[sessionurl]do=getnew" accesskey="2">$vbphrase[new_posts_nav]</a></li></if>
+	</ul>
+</div>
+<script type="text/javascript">fdwMenus.register("learn", true);</script>]]></template>
+		<template name="navbar_notifications_menubit_fdw" templatetype="template" date="1291753681" username="Admin" version="1.0.0"><![CDATA[<li><a href="$notification[link]">$notification[phrase]: $notification[total]</a></li>]]></template>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Print display options</title>
+			<hookname>admin_options_print</hookname>
+			<phpcode><![CDATA[if ($setting['optioncode'] == 'fdwforumhomedisplay')
+{
+	$values = unserialize($setting['value']);
+	$selectopt = array(
+		$vbphrase['fdw_forumhome_mode0'], $vbphrase['fdw_forumhome_mode1'], $vbphrase['fdw_forumhome_mode2'],
+		$vbphrase['fdw_forumhome_mode3'], $vbphrase['fdw_forumhome_mode4'], $vbphrase['fdw_forumhome_mode5']
+	);
+	
+	$setting['html'] = "
+		<div id=\"ctrl_$setting[varname]\" class=\"smallfont\">
+		<fieldset>
+			<legend>$vbphrase[options]</legend>
+			<label>$vbphrase[fdw_forumhome_quantity]
+				<input type=\"text\" class=\"bginput\" name=\"setting[$setting[varname]][quantity]\" value=\"$values[quantity]\" />
+			</label>
+			<br />
+			<label>$vbphrase[fdw_forumhome_mode]
+				<select class=\"bginput\" name=\"setting[$setting[varname]][mode]\">"
+					. construct_select_options($selectopt, $values['mode']) . "
+				</select>
+			</label>
+			<br />
+			<label><input type=\"checkbox\" name=\"setting[$setting[varname]][disorder]\"" . ($values['disorder'] ? ' checked="checked"' : '') . " value=\"1\" />$vbphrase[fdw_forumhome_disorder]</label>
+			<label><input type=\"checkbox\" name=\"setting[$setting[varname]][avatar]\"" . ($values['avatar'] ? ' checked="checked"' : '') . " value=\"1\" />$vbphrase[fdw_forumhome_avatar]</label>
+			<label><input type=\"checkbox\" name=\"setting[$setting[varname]][members]\"" . ($values['members'] ? ' checked="checked"' : '') . " value=\"1\" />$vbphrase[fdw_forumhome_members]</label>
+		</fieldset>
+		</div>
+	";
+	
+	print_label_row($description, $setting['html'], '', 'top', $name, 50);
+	$handled = true;
+}
+if ($setting['optioncode'] == 'fdwforumcustomdisplay')
+{
+	$values = unserialize($setting['value']);
+	$modeopt = array(1 => $vbphrase['fdw_forumcustom_showall'], 2 => $vbphrase['fdw_forumcustom_mode1'], 3 => $vbphrase['fdw_forumcustom_mode2']);
+	$showopt = array(1 => $vbphrase['fdw_forumcustom_show1'], 2 => $vbphrase['fdw_forumcustom_show2']);
+	
+	$setting['html'] = "
+		<div id=\"ctrl_$setting[varname]\" class=\"smallfont\">
+		<fieldset>
+			<legend>$vbphrase[options]</legend>
+			<label>$vbphrase[fdw_forumcustom_mode]
+				<select class=\"bginput\" name=\"setting[$setting[varname]][mode]\">"
+					. construct_select_options($modeopt, $values['mode']) . "
+				</select>
+			</label>
+			<label>$vbphrase[fdw_forumcustom_show]
+				<select class=\"bginput\" name=\"setting[$setting[varname]][show]\">"
+					. construct_select_options($showopt, $values['show']) . "
+				</select>
+			</label>
+			<br /><label>$vbphrase[fdw_forumcustom_pp]<input type=\"text\" name=\"$setting[varname][pp]\" value=\"$values[pp]\" /></label>
+		</fieldset>
+		</div>
+	";
+	
+	print_label_row($description, $setting['html'], '', 'top', $name, 50);
+	$handled = true;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Rebuild data</title>
+			<hookname>admin_options_processing</hookname>
+			<phpcode><![CDATA[if ($oldsetting['optioncode'] == 'fdwforumcustomdisplay')
+{
+	$svalues = array('mode' => 1, 'show' => 1, 'pp' => 25);
+	$maxvalues = array('mode' => 3, 'show' => 2, 'pp' => 0);
+	foreach ($settings["$oldsetting[varname]"] AS $skey => $svalue)
+	{
+		if (isset($svalues["$skey"]))
+		{
+			$svalue = intval($svalue);
+			if ($svalue < 1)
+			{
+				$svalue = 1;
+			}
+			if ($maxvalues["$skey"] > 0 AND $svalue > $maxvalues["$skey"])
+			{
+				$svalue = $maxvalues["$skey"];
+			}
+			$svalues["$skey"] = $svalue;
+		}
+	}
+	$settings["$oldsetting[varname]"] = serialize($svalues);
+}
+if ($oldsetting['optioncode'] == 'fdwforumhomedisplay')
+{
+	$svalues = array(
+		'quantity' => 0,
+		'mode' => 0,
+		'disorder' => 0,
+		'avatar' => 0,
+		'members' => 0
+	);
+	
+	foreach ($settings["$oldsetting[varname]"] AS $skey => $svalue)
+	{
+		if (isset($svalues["$skey"]))
+		{
+			$svalue = intval($svalue);
+			if ($skey == 'quantity' AND $svalue < 1) {
+				$svalue = 1;
+			}
+			if ($skey == 'mode' AND ($svalue < 0 OR $svalue > 5))
+			{
+				$svalue = 0;
+			}
+			$svalues["$skey"] = $svalue;
+		}
+	}
+	
+	$settings["$oldsetting[varname]"] = serialize($svalues);
+}
+
+if (strpos($oldsetting['varname'], 'fdw_forumhome_') === 0)
+{
+	if (!isset($fdw_forumhome_build))
+	{
+		$fdw_forumhome_build = array('num_rows' => $vbulletin->db->num_rows($oldsettings), 'count' => 0, 'is_last' => false);
+	}
+	$fdw_forumhome_build['count']++;
+	if ($fdw_forumhome_build['num_rows'] == $fdw_forumhome_build['count'])
+	{
+		$fdw_forumhome['is_last'] = true;
+		if (isset($fdw_forumhome_build['enable']) AND $fdw_forumhome_build['enable'] == true)
+		{
+			$fdw_forumhome_build = array_merge($fdw_forumhome_build, array(
+				'newusers' => true, 'forumstats' => true, 'forumcache' => true, 'userstats' => true, 'usercache' => true
+			));
+		}
+		else
+		{
+			$fdw_forumhome_build['enable'] = true;
+		}
+		if ($fdw_forumhome_build['enable'])
+		{
+			require_once(DIR . '/includes/functions_fdwforum.php');
+			build_fdwsettings($fdw_forumhome_build);
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Rebuilding data</title>
+			<hookname>admin_options_processing_build</hookname>
+			<phpcode><![CDATA[if (strpos($oldsetting['varname'], 'fdw_forumhome_') === 0)
+{
+	$vbulletin->options["$oldsetting[varname]"] = $newvalue;
+	if (!isset($fdw_forumhome_build['enable']) OR $fdw_forumhome_build['is_last'])
+	{
+		$fdw_forumhome_temp = array();
+		switch ($oldsetting['varname'])
+		{
+			case 'fdw_forumhome_enable':
+				$fdw_forumhome_temp['enable'] = $newvalue;
+				break;
+			case 'fdw_forumhome_absdays':
+				$fdw_forumhome_temp['forumstats'] = true;
+				$fdw_forumhome_temp['forumcache'] = true;
+				break;
+			case 'fdw_forumhome_newusers':
+			case 'fdw_forumhome_newavatars':
+				$fdw_forumhome_temp['newusers'] = true;
+				break;
+			case 'fdw_forumhome_mostlimit':
+			case 'fwd_forumhome_lastdays':
+				$fdw_forumhome_temp['userstats'] = true;
+				break;
+			case 'fdw_forumhome_levels':
+			case 'fdw_forumhome_levelmax':
+				$fdw_forumhome_temp['usercache'] = true;
+				$fdw_forumhome_temp['forumcache'] = true;
+		}
+		if ($fdw_forumhome_build['is_last'])
+		{
+			build_fdwsettings($fdw_forumhome_temp);
+		}
+		$fdw_forumhome_build = array_merge($fdw_forumhome_temp, $fdw_forumhome_build);
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Save forum order</title>
+			<hookname>ajax_start</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'forumorder' AND $vbulletin->options['fdw_forumhome_enable'] AND $vbulletin->options['fdw_forumhome_drag'] AND $vbulletin->userinfo['userid'])
+{
+	$vbulletin->input->clean_array_gpc('p', array(
+		'forum' => TYPE_ARRAY_UINT
+	));
+	
+	reset($vbulletin->GPC['forum']);
+	$displayorder = 1;
+	while (list($forumid, $small) = each($vbulletin->GPC['forum']))
+	{
+		if (isset($vbulletin->forumcache["$forumid"]) AND $vbulletin->forumcache["$forumid"]['parentid'] = -1)
+		{
+			$forumid = (int) $forumid;
+			$smallvalue = ($small) ? 1 : 0;
+			$vbulletin->db->query_write("
+				INSERT INTO " . TABLE_PREFIX . "fdwforum (userid, forumid, fdwcolorid, small, relevance, displayorder)
+					VALUES ({$vbulletin->userinfo['userid']}, $forumid, 0, $smallvalue, 0, $displayorder)
+				ON DUPLICATE KEY UPDATE
+					small = $smallvalue,
+					displayorder = $displayorder
+			");
+			$displayorder++;
+		}
+	}
+	
+	$vbulletin->db->query_write("
+		DELETE FROM " . TABLE_PREFIX . "fdwsession
+		WHERE sessionhash = '" . $vbulletin->db->escape_string($vbulletin->session->vars['dbsessionhash']) . "'
+			AND userid = {$vbulletin->userinfo['userid']}
+	");
+	
+	$xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+	$xml->add_tag('updated', $displayorder);
+	$xml->print_xml();
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Order forums</title>
+			<hookname>cache_ordered_forums</hookname>
+			<phpcode><![CDATA[if (defined('FDW_FORUMHOME') OR defined('FDW_FORUMDISPLAY'))
+{
+	if ($vbulletin->userinfo['userid'] AND defined('FDW_FORUMHOME'))
+	{
+		$fdwordercache = array();
+		if ($fdwsessioncache = $vbulletin->db->query_first("
+			SELECT * FROM " . TABLE_PREFIX . "fdwsession
+			WHERE sessionhash = '" . $vbulletin->db->escape_string($vbulletin->session->vars['dbsessionhash']) . "'"
+		))
+		{
+			if ($fdwsessioncache['userid'] == $vbulletin->userinfo['userid'])
+			{
+				$fdwordercache = unserialize($fdwsessioncache['fdwforum']);
+			}
+			unset($fdwsessioncache);
+		}
+		if (!$fdwordercache)
+		{
+			$fdwlastcache = $vbulletin->db->query_first("
+				SELECT 1 FROM " . TABLE_PREFIX . "fdwuser
+				WHERE userid = {$vbulletin->userinfo['userid']} AND forumcache > " . (TIMENOW - (60 * 60 * $vbulletin->options['fdw_forumhome_cache'])) . "
+			");
+			require_once(DIR . '/includes/functions_fdwforum.php');
+			if (!$fdwlastcache)
+			{
+				build_fdwforum_stats($vbulletin->userinfo['userid'], null, $vbulletin->options['fdw_forumhome_lastdays']);
+			}
+			$fdwordercache = build_fdwforum_usercache($vbulletin->session->vars['dbsessionhash'], $vbulletin->userinfo['userid']);
+		}
+		$vbulletin->userinfo['fdwordercache'] =& $fdwordercache;
+		
+		if (count($vbulletin->fdwforum) > 0)
+		{
+			reset($vbulletin->fdwforum);
+			$maxrelevance = current($vbulletin->fdwforum);
+			$vbulletin->fdwforumreorder = array('maxrelevance' => $maxrelevance['fdwforum']['relevance']);
+		}
+		
+		foreach ($vbulletin->fdwforum AS $forumid => $forum)
+		{
+			if (isset($vbulletin->forumcache["$forumid"]))
+			{
+				if (isset($vbulletin->userinfo['fdwordercache']['ordered']["$forumid"]))
+				{
+					$forum['fdwforum']['small'] = $vbulletin->userinfo['fdwordercache']['ordered']["$forumid"]['fdwforum']['small']; 
+				}
+				$vbulletin->userinfo['fdwordercache']['ordered']["$forumid"] = $forum;
+			}
+		}
+		$vbulletin->fdwforum =& $vbulletin->userinfo['fdwordercache']['ordered'];
+	}
+	
+	foreach ($vbulletin->forumcache AS $forumid => $forum)
+	{
+		if (!isset($vbulletin->fdwforum["$forumid"]))
+		{
+			$vbulletin->fdwforum["$forumid"] = array('fdwforum' => array('fdwcolorid' => 1, 'small' => 0, 'level' => 1));
+		}
+		$vbulletin->fdwforum["$forumid"] += $forum;
+	}
+	
+	$vbulletin->forumcache =& $vbulletin->fdwforum;
+	
+	if ($vbulletin->userinfo['userid'] AND $vbulletin->options['fdw_forumhome_mostreorder'] AND defined('FDW_FORUMHOME'))
+	{
+		$mostvisited = array_reverse($vbulletin->userinfo['fdwordercache']['most'], true);
+		foreach ($mostvisited AS $forumid => $forum)
+		{
+			if (isset($vbulletin->forumcache["$forumid"]))
+			{
+				$forum = $vbulletin->forumcache["$forumid"];
+				unset($vbulletin->forumcache["$forumid"]);
+				$forum['fdwforum']['relevance'] = ++$vbulletin->fdwforumreorder['maxrelevance'];
+				$vbulletin->forumcache = array("$forumid" => $forum) + $vbulletin->forumcache;
+				$vbulletin->fdwforumreorder["$forum[parentid]"] = $forum['parentid'];
+			}
+		}
+	}
+	
+	if (defined('FDW_FORUMDISPLAY'))
+	{
+		$vbulletin->fdwforumreorder = array($GLOBALS['foruminfo']['forumid'] => $GLOBALS['foruminfo']['forumid']);
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="3">
+			<title>FDW ForumHome: Cache templates</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_forumhome_enable'] AND ((THIS_SCRIPT == 'index' AND !$foruminfo) OR (THIS_SCRIPT == 'forumdisplay' AND $vbulletin->options['fdw_forumhome_forumdisplay'])))
+{
+	if (in_array(STYLEID, unserialize($vbulletin->options['fdw_forumhome_style'])) OR (THIS_SCRIPT == 'index' AND !empty($vbulletin->options['fdw_forumhome_page']) AND isset($_REQUEST['do']) AND $_REQUEST['do'] == $vbulletin->options['fdw_forumhome_page']))
+	{
+		if (is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_forumhome_group'])))
+		{
+			$replacetemplates += array(
+				'forumhome_forumbit_level2_nopost' => 'forumhome_forumbit_level2_nopost_fdw',
+				'forumhome_forumbit_level2_post' => 'forumhome_forumbit_level2_post_fdw',
+				'forumhome_subforumbit_post' => 'forumhome_subforumbit_post_fdw',
+				'forumhome_subforumbit_nopost' => 'forumhome_subforumbit_nopost_fdw',
+				'forumhome_lastpostby' => 'forumhome_lastpostby_fdw',
+				'forumhome_markread_script' => 'forumhome_markread_script_fdw'
+			);
+			if (THIS_SCRIPT == 'index')
+			{
+				$globaltemplates[] = 'forumhome_registereduser';
+				$replacetemplates += array(
+					'headinclude' => 'headinclude_fdw',
+					'navbar' => 'navbar_fdw',
+					'navbar_notifications_menubit' => 'navbar_notifications_menubit_fdw',
+					'footer' => 'footer_fdw',
+					'FORUMHOME' => 'FORUMHOME_fdw',
+					'forumhome_forumbit_level1_nopost' => 'forumhome_forumbit_level1_nopost_fdw',
+					'forumhome_forumbit_level1_post' => 'forumhome_forumbit_level1_post_fdw',
+					'forumhome_birthdaybit' => 'forumhome_birthdaybit_fdw',
+				);
+				define('FDW_FORUMHOME', true);
+			}
+			else
+			{
+				$globaltemplates[] = 'forumdisplay_subforums';
+				$globaltemplates[] = 'forumdisplay_headinclude';
+				$replacetemplates += array(
+					'forumhome_forumbit_level1_nopost' => 'forumhome_forumbit_level2_nopost_fdw',
+					'forumhome_forumbit_level1_post' => 'forumhome_forumbit_level2_post_fdw',
+				);
+				define('FDW_FORUMDISPLAY', true);
+			}
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Clean session</title>
+			<hookname>cron_script_cleanup_hourly</hookname>
+			<phpcode><![CDATA[$vbulletin->db->query_write("
+	DELETE FROM " . TABLE_PREFIX . "fdwsession
+	WHERE sessionhash NOT IN (SELECT sessionhash FROM " . TABLE_PREFIX . "session)
+");]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Forum options</title>
+			<hookname>forumadmin_edit_form</hookname>
+			<phpcode><![CDATA[if ($forum['forumid'])
+{
+	$fdwforum = $vbulletin->db->query_first("SELECT * FROM " . TABLE_PREFIX . "fdwforum WHERE userid = 0 AND forumid = $forum[forumid]");
+}
+if (!$fdwforum)
+{
+	$fdwforum = array('fdwcolorid' => 1, 'small' => 0);
+}
+$vbulletin->datastore->do_db_fetch("'fdwcolor'");
+
+$fdwcolors = array();
+foreach ($vbulletin->fdwcolor AS $id => $color)
+{
+	$fdwcolors["$id"] = $color['name'];
+}
+
+print_table_header($vbphrase['fdw_forumhome_other']);
+print_select_row($vbphrase['fdw_forumhome_color'], 'fdwcolorid', $fdwcolors, $fdwforum['fdwcolorid']);
+print_select_row($vbphrase['fdw_forumhome_size'], 'small', array($vbphrase['fdw_forumhome_normal'], $vbphrase['fdw_forumhome_small']), $fdwforum['small']);
+print_input_row($vbphrase['title'], 'shorttitle', $fdwforum['shorttitle']);]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Forum options (Saving)</title>
+			<hookname>forumadmin_update_save</hookname>
+			<phpcode><![CDATA[define('ADMINCP_SCRIPT', 'forum');]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: ForumBit</title>
+			<hookname>forumbit_display</hookname>
+			<phpcode><![CDATA[if (defined('FDW_FORUMHOME') OR defined('FDW_FORUMDISPLAY'))
+{
+	if (!$forum['fdwforumid'])
+	{
+		$forum['fdwforumid'] =& $forum['forumid'];
+	}
+	
+	if ($vbulletin->options['fdw_forumhome_mostreorder'] OR defined('FDW_FORUMDISPLAY'))
+	{
+		if (is_array($vbulletin->fdwforumreorder) AND isset($vbulletin->fdwforumreorder["$forum[parentid]"]))
+		{
+			$relevance = array();
+			foreach ($vbulletin->iforumcache["$forum[parentid]"] AS $iforumid => $iforum)
+			{
+				$relevance["$iforumid"] = $vbulletin->forumcache["$iforumid"]['fdwforum']['relevance'];
+			}
+			$levelmax = explode(',', $vbulletin->options['fdw_forumhome_levelmax']);
+			if (count($levelmax) > 0)
+			{
+				require_once(DIR . '/includes/functions_fdwforum.php');
+				$levels = fdw_fetch_levels($relevance, $levelmax);
+			}
+			else
+			{
+				$levels = fetch_standard_deviated_levels($relevance, $vbulletin->options['fdw_forumhome_levels']);
+			}
+			foreach($levels AS $iforumid => $level)
+			{
+				$vbulletin->forumcache["$iforumid"]['fdwforum']['level'] = $level;
+				if ($iforumid === $forumid)
+				{
+					$forum['fdwforum']['level'] = $level;
+				}
+			}
+			unset($vbulletin->fdwforumreorder["$forum[parentid]"]);
+		}
+	}
+}
+
+if (defined('FDW_FORUMHOME'))
+{
+	$show['color'] = $vbulletin->fdwcolor["{$forum['fdwforum']['fdwcolorid']}"]['class'];
+	$show['browsers'] = ($vbulletin->options['fdw_forumhome_loggedin']['mode'] > 0 AND !$forum['link'] AND $forum['browsers']);
+	
+	if (!function_exists('fetch_fdw_forum'))
+	{
+		function fetch_fdw_forum($text)
+		{
+			$infopos = strpos($text, '*');
+			$info = explode(':', substr($text, 4, $infopos - 4));
+			
+			return array(
+				'status' => substr($info[0], -1),
+				'first' => substr($text, $infopos + 4, $info[1]),
+				'second' => substr($text, $infopos + 4 + $info[1])
+			);
+		}
+	}
+	
+	if ($depth == 1)
+	{
+		if (!empty($forumbits))
+		{
+			$info = fetch_fdw_forum($forumbits);
+			if ($info['status'] != $forum['fdwforum']['small'])
+			{
+				$forumbits = '<!--' . $forum['fdwforum']['small'] . ':' . strlen($info['second']) . '*-->' . $info['second'] . $info['first'];
+			}
+		}
+		else
+		{
+			$forumbits = '<!--' . $forum['fdwforum']['small'] . ':0*-->';
+		}
+	}
+	
+	if ($forum['forumid'] == -3)
+	{
+		if ($vbulletin->options['fdw_forumcustom_enable'] AND is_member_of($vbulletin->userinfo, unserialize($vbulletin->options['fdw_forumcustom_groups'])))
+		{
+			$show['forumlink'] = 'fdwforum.php';
+		}
+		else
+		{
+			$show['forumlink'] = '';
+		}
+	}
+	else
+	{
+		$show['forumlink'] = "forumdisplay.php?$session[sessionurl]f=$forum[forumid]";
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Forum options (Save)</title>
+			<hookname>forumdata_postsave</hookname>
+			<phpcode><![CDATA[if (defined('ADMINCP_SCRIPT'))
+{
+	if (ADMINCP_SCRIPT == 'forum')
+	{
+		global $vbulletin;
+		$vbulletin->input->clean_array_gpc('p', array(
+			'fdwcolorid'	=> TYPE_UINT,
+			'small'			=> TYPE_UINT,
+			'shorttitle'	=> TYPE_NOHTML
+		));
+		$vbulletin->GPC['shorttitle'] = $vbulletin->db->escape_string($vbulletin->GPC['shorttitle']);
+		$this->dbobject->query_write("
+			INSERT INTO " . TABLE_PREFIX . "fdwforum (userid, forumid, fdwcolorid, small, relevance, displayorder, shorttitle)
+				VALUES (0, " . $this->fetch_field('forumid') . ", {$vbulletin->GPC['fdwcolorid']}, {$vbulletin->GPC['small']}, 0, 0, '{$vbulletin->GPC['shorttitle']}')
+			ON DUPLICATE KEY UPDATE
+				fdwcolorid = {$vbulletin->GPC['fdwcolorid']},
+				small = {$vbulletin->GPC['small']},
+				shorttitle = '{$vbulletin->GPC['shorttitle']}'
+		");
+		require_once(DIR . '/includes/functions_fdwforum.php');
+		build_fdwforum_cache();
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="15">
+			<title>FDW ForumHome: ForumDisplay Subforums</title>
+			<hookname>forumdisplay_complete</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_forumhome_forumdisplay'] AND $show['forumslist'] AND defined('FDW_FORUMDISPLAY'))
+{
+	$show['forumslist'] = false;
+	$show['color'] = $vbulletin->fdwcolor["{$vbulletin->forumcache["$forumid"]['fdwforum']['fdwcolorid']}"]['class'];
+	eval('$navbar .= "' . fetch_template('forumdisplay_subforums') . '";');
+	eval('$headinclude .= "' . fetch_template('forumdisplay_headinclude') . '";');
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Complete</title>
+			<hookname>forumhome_complete</hookname>
+			<phpcode><![CDATA[if (defined('FDW_FORUMHOME') AND function_exists('fetch_fdw_forum'))
+{
+	$info = fetch_fdw_forum($forumbits);
+	if ($info['status'] == 0)
+	{
+		$forumbits = array('normal' => $info['second'], 'min' => $info['first']);
+	}
+	else
+	{
+		$forumbits = array('normal' => $info['first'], 'min' => $info['second']);
+	}
+	$show['mostvisited'] = false;
+	if ($vbulletin->options['fdw_forumhome_most'] AND $vbulletin->userinfo['fdwordercache'])
+	{
+		$fdwordercache =& $vbulletin->userinfo['fdwordercache'];
+		if (count($fdwordercache['most']) >= $vbulletin->options['fdw_forumhome_mostmin'])
+		{
+			$vbulletin->options['externalrss_cache'] = $vbulletin->options['externalrss'];
+			$vbulletin->options['externalrss'] = false;
+			$vbulletin->forumcache[-3] = array(
+				'forumid' => -3,
+				'title' => $vbphrase['fdw_forumhome_mostvisited'],
+				'title_clean' => $vbphrase['fdw_forumhome_mostvisited'],
+				'fdwforum' => array(
+					'fdwcolorid' => $vbulletin->options['fdw_forumhome_mostcolor']
+				),
+				'displayorder' => 1,
+				'options' => 0 | $vbulletin->bf_misc_forumoptions['active']
+			);
+			$vbulletin->userinfo['forumpermissions'][-3] |= $vbulletin->bf_ugp_forumpermissions['canview'];
+			foreach ($fdwordercache['most'] AS $forumid => $forum)
+			{
+				$vbulletin->iforumcache[-3]["$forumid"] = $forumid;
+				$vbulletin->forumcache["$forumid"]['fdwforum']['relevance'] = $forum['relevance'];
+				$vbulletin->forumcache["$forumid"]['fdwforum']['level'] = $forum['level'];
+				$vbulletin->forumcache["$forumid"]['fdwforumid'] = 'special_' . $vbulletin->forumcache["$forumid"]['forumid'];
+			}
+			$vbulletin->iforumcache[-2][-3] = -3;
+			$vbulletin->fdwforumreorder = array();
+			$forumbits['mostvisited'] = construct_forum_bit(-2);
+			$show['mostvisited'] = true;
+			$vbulletin->options['externalrss'] = $vbulletin->options['externalrss_cache'];
+		}
+	}
+}
+if (defined('FDW_FORUMHOME'))
+{
+	if ($vbulletin->options['fdw_forumhome_newusers'] > 0)
+	{
+		if (!is_array($vbulletin->fdwnewusers))
+		{
+			require_once(DIR . '/includes/functions_fdwforum.php');
+			$vbulletin->fdwnewusers = build_fdwnewusers();
+		}
+		
+		$newuserbits = '';
+		foreach ($vbulletin->fdwnewusers AS $registered)
+		{
+			eval('$newuserbits .= "' . fetch_template('forumhome_registereduser') . '";');
+		}
+		
+		$show['newusers'] = !empty($newuserbits);
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Birthday and active users</title>
+			<hookname>forumhome_start</hookname>
+			<phpcode><![CDATA[if (defined('FDW_FORUMHOME'))
+{
+	$today = vbdate('Y-m-d', TIMENOW, false, false);
+	if ($vbulletin->userinfo['buddylist'] = trim($vbulletin->userinfo['buddylist']))
+	{
+		$buddylist = preg_split('/\s+/', $vbulletin->userinfo['buddylist'], -1, PREG_SPLIT_NO_EMPTY);
+	}
+	else
+	{
+		$buddylist = array();
+	}
+	
+	$vbulletin->options['fdw_forumhome_birthdays'] = unserialize($vbulletin->options['fdw_forumhome_birthdays']);
+	
+	if ($vbulletin->options['showbirthdays'] AND $vbulletin->options['fdw_forumhome_birthdays']['mode'] > 0 AND ($vbulletin->userinfo['userid'] OR !$vbulletin->options['fdw_forumhome_birthdays']['members']))
+	{
+		if (!is_array($vbulletin->birthdaycache)
+			OR ($today != $vbulletin->birthdaycache['day1'] AND $today != $vbulletin->birthdaycache['day2'])
+			OR !is_array($vbulletin->birthdaycache['users1'])
+		)
+		{
+			require_once(DIR . '/includes/functions_databuild.php');
+			$vbulletin->birthdaycache = build_birthdays();
+			require_once(DIR . '/includes/functions_fdwforum.php');
+			$vbulletin->fdwbirthdays = build_fdwbirthdays();
+			DEVDEBUG('Updated Birthdays');
+		}
+		$birthdaystore =& $vbulletin->birthdaycache;
+		
+		switch ($today)
+		{
+			case $birthdaystore['day1']:
+				$birthdaysarray =& $birthdaystore['users1'];
+				break;
+
+			case $birthdaystore['day2']:
+				$birthdaysarray =& $birthdaystore['users2'];
+				break;
+
+			default:
+				$birthdaysarray = array();
+		}
+		
+		$birthdayfriends = $birthdayothers = array();
+		
+		if ($vbulletin->options['fdw_forumhome_birthdays']['mode'] >= 2 AND $vbulletin->options['fdw_forumhome_birthdays']['mode'] <= 4)
+		{
+			$fdwbirthdayfriends =& $vbulletin->options['fdw_forumhome_birthdays']['mode'];
+		}
+		else
+		{
+			$fdwbirthdayfriends = false;
+		}
+		
+		$show['withoutavatar'] = true;
+		$birthdaybitsall = array();
+		foreach ($birthdaysarray AS $key => $birthday)
+		{
+			if (!$vbulletin->fdwbirthdays["$birthday[userid]"])
+			{
+				require_once(DIR . '/includes/functions_fdwforum.php');
+				$vbulletin->fdwbirthdays = build_fdwbirthdays();
+			}
+			if ($vbulletin->options['fdw_forumhome_birthdaysall'])
+			{
+				eval('$birthdaybitsall[] = "' . fetch_template('forumhome_birthdaybit') . '";');
+			}
+			if ($vbulletin->options['fdw_forumhome_birthdays']['avatar'] AND empty($vbulletin->fdwbirthdays["$birthday[userid]"]['avatarurl']))
+			{
+				continue;
+			}
+			if ($fdwbirthdayfriends AND in_array($birthday['userid'], $buddylist))
+			{
+				$birthdayfriends[] = $birthday + $vbulletin->fdwbirthdays["$birthday[userid]"];
+			}
+			else if ($fdwbirthdayfriends != 2)
+			{
+				$birthdayothers[] = $birthday + $vbulletin->fdwbirthdays["$birthday[userid]"];
+			}
+		}
+		
+		if (count($birthdayfriends > $vbulletin->options['fdw_forumhome_birthdays']['quantity']))
+		{
+			shuffle($birthdayfriends);
+		}
+		
+		if (count($birthdayfriends) < $vbulletin->options['fdw_forumhome_birthdays']['quantity'] AND $fdwbirthdayfriends != 2)
+		{
+			if ($vbulletin->options['fdw_forumhome_birthdays']['mode'] >= 4)
+			{
+				function fdw_birthday_sort($a, $b)
+				{
+					if ($a['posts'] == $b['posts'])
+					{
+						return 0;
+					}
+					return ($a['posts'] < $b['posts']) ? 1 : -1;
+				}
+				usort($birthdayothers, 'fdw_birthday_sort');
+			}
+			else
+			{
+				shuffle($birthdayothers);
+			}
+		}
+		
+		$birthdayothers = array_slice(array_merge($birthdayfriends, $birthdayothers), 0, $vbulletin->options['fdw_forumhome_birthdays']['quantity']);
+		if ($vbulletin->options['fdw_forumhome_birthdays']['disorder'])
+		{
+			shuffle($birthdayothers);
+		}
+		$birthdaybits = '';
+		$show['withoutavatar'] = false;
+		foreach ($birthdayothers AS $birthday)
+		{
+			if (empty($birthday['avatarurl']))
+			{
+				$birthday['avatarurl'] = $stylevar['imgdir_misc'] . '/unknown.gif';
+			}
+			eval('$birthdaybits .= "' . fetch_template('forumhome_birthdaybit') . '";');
+		}
+		$show['fdwbirthdays'] = !empty($birthdaybits);
+		$show['fdwbirthdaysall'] = (count($birthdaybitsall) > count($birthdayothers)) ? count($birthdaybitsall) : 0;
+		$birthdaybitsall = implode(', ', $birthdaybitsall);
+	}
+	else
+	{
+		$show['fdwbirthdays'] = false;
+	}
+
+	$vbulletin->options['showbirthdays'] = false;
+	
+	$vbulletin->options['fdw_forumhome_loggedin'] = unserialize($vbulletin->options['fdw_forumhome_loggedin']);
+	
+	$datecut = TIMENOW - $vbulletin->options['cookietimeout'];
+	if ($vbulletin->options['fdw_forumhome_loggedin']['mode'] > 0 AND ($vbulletin->userinfo['userid'] OR !$vbulletin->options['fdw_forumhome_loggedin']['members']))
+	{
+		$users_query_where = $users_query_select = '';
+		if ($vbulletin->options['fdw_forumhome_loggedin']['mode'] == 2 AND count($buddylist) > 0)
+		{
+			$users_query_where = "AND session.userid IN (" . implode(',', $buddylist) . ")";
+		}
+		if (!($vbulletin->userinfo['permissions']['genericpermissions'] & $vbulletin->bf_ugp_genericpermissions['canseehidden']))
+		{
+			$users_query_where .= " AND NOT (user.options & " . $vbulletin->bf_misc_useroptions['invisible'] . ")";
+		}
+		if ($vbulletin->options['avatarenabled'] AND $vbulletin->options['fdw_forumhome_loggedin']['avatar'])
+		{
+			require_once(DIR . '/includes/functions_fdwforum.php');
+			$users_query_where .= " AND (avatar.avatarpath != '' OR NOT ISNULL(customavatar.userid)) AND (" . fetch_avatar_usergroup_condition() . ")";
+		}
+		switch($vbulletin->options['fdw_forumhome_loggedin']['mode'])
+		{
+			case 3:
+				if (count($buddylist))
+				{
+					$users_query_where .= " ORDER BY FIELD(session.userid, " . implode(',', $buddylist) . ") DESC";
+				}
+				break;
+			case 4:
+				$users_query_where .= " ORDER BY " . (count($buddylist) ? "FIELD(session.userid, " . implode(',', $buddylist) . ") DESC, " : "") . "user.posts DESC";
+				break;
+			case 5:
+				$users_query_where .= " ORDER BY user.posts DESC";
+		}
+		
+		$users_query = $vbulletin->db->query_read("
+			SELECT DISTINCT session.userid, 1 AS adminavatar,
+				(user.options & " . $vbulletin->bf_misc_useroptions['invisible'] . ") AS invisible, user.username
+			" . ($vbulletin->options['avatarenabled'] ? ', user.avatarrevision, avatar.avatarpath, NOT ISNULL(customavatar.userid) AS hascustomavatar, customavatar.dateline AS avatardateline, customavatar.width_thumb AS avwidth_thumb, customavatar.height_thumb AS avheight_thumb, customavatar.width as avwidth, customavatar.height as avheight, customavatar.filedata_thumb' : '') . "
+			FROM " . TABLE_PREFIX . "session AS session
+			LEFT JOIN " . TABLE_PREFIX . "user AS user USING (userid)
+			" . ($vbulletin->options['avatarenabled'] ? "LEFT JOIN " . TABLE_PREFIX . "avatar AS avatar ON (avatar.avatarid = user.avatarid) LEFT JOIN " . TABLE_PREFIX . "customavatar AS customavatar ON (customavatar.userid = user.userid) " : '') . "
+			WHERE session.userid > 0 AND session.lastactivity > $datecut
+				$users_query_where
+			LIMIT {$vbulletin->options['fdw_forumhome_loggedin']['quantity']}
+		");
+		
+		$activeuserbits = array();
+		require_once(DIR . '/includes/functions_user.php');
+		while ($registered = $vbulletin->db->fetch_array($users_query))
+		{
+			fetch_avatar_from_userinfo($registered, true);
+			eval('$activeuserbits[] = "' . fetch_template('forumhome_registereduser') . '";');
+		}
+		if ($vbulletin->options['fdw_forumhome_loggedin']['disorder'])
+		{
+			shuffle($activeuserbits);
+		}
+		$activeuserbits = implode(' ', $activeuserbits);
+		$show['activeusers'] = !empty($activeuserbits);
+		$numberguest = 0;
+		$numberregistered = 0;
+		if (!$vbulletin->fdwinforum OR $vbulletin->fdwinforum['cachetime'] < (TIMENOW - (60 * $vbulletin->options['fdw_forumhome_cacheinforum'])))
+		{
+			$forumusers = $db->query_read_slave("
+				SELECT COUNT(*) AS total, inforum, badlocation, IF(userid > 0, 0, 1) AS guest
+				FROM " . TABLE_PREFIX . "session AS session
+				WHERE lastactivity > $datecut
+					AND (userid = 0 OR (userid > 0 AND lastactivity = (SELECT MAX(s2.lastactivity) FROM " . TABLE_PREFIX . "session AS s2 WHERE s2.userid = session.userid)))
+				GROUP BY inforum, badlocation, guest
+			");
+			$inforum = array();
+			while ($loggedin = $db->fetch_array($forumusers))
+			{
+				if ($loggedin['guest'])
+				{
+					$numberguest += $loggedin['total'];
+				}
+				else
+				{
+					$numberregistered += $loggedin['total'];
+				}
+				if (!$loggedin['badlocation'])
+				{
+					$inforum["$loggedin[inforum]"] += $loggedin['total'];
+				}
+			}
+			$totalonline = $numberguest + $numberregistered;
+			if ($vbulletin->options['fdw_forumhome_cacheinforum'] > 0)
+			{
+				$inforum['cachwetime'] = TIMENOW;
+				build_datastore('fdwinforum', serialize($inforum), 1);
+			}
+			if ($vbulletin->options['fdw_forumhome_cachetotals'] > 0)
+			{
+				build_datastore('fdwonlinecount', serialize(array('cachetime' => TIMENOW, 'total' => $totalonline, 'guest' => $numberguest, 'registered' => $numberregistered)), 1);
+			}
+		}
+		else
+		{
+			$inforum = $vbulletin->fdwinforum;
+			if (!$vbulletin->fdwonlinecount OR $vbulletin->fdwonlinecount['cachetime'] < (TIMENOW - (60 * $vbulletin->options['fdw_forumhome_cachetotals'])))
+			{
+				$quickcount = $db->query_read_slave("
+					SELECT IF(userid > 0, 0, 1) AS guest, COUNT(*) AS total, COUNT(DISTINCT userid) AS registered
+					FROM " . TABLE_PREFIX . "session
+					WHERE lastactivity > $datecut
+					GROUP BY guest
+				");
+				while ($loggedin = $db->fetch_array($quickcount))
+				{
+					if ($loggedin['guest'])
+					{
+						$numberguest = $loggedin['total'];
+					}
+					else
+					{
+						$numberregistered = $loggedin['registered'];
+					}
+				}
+				$totalonline = $numberguest + $numberregistered;
+				if ($vbulletin->options['fdw_forumhome_cachetotals'] > 0)
+				{
+					build_datastore('fdwonlinecount', serialize(array('cachetime' => TIMENOW, 'total' => $totalonline, 'guest' => $numberguest, 'registered' => $numberregistered)), 1);
+				}
+			}
+			else
+			{
+				$numberguest =& $vbulletin->fdwonlinecount['guest'];
+				$numberregistered =& $vbulletin->fdwonlinecount['registered'];
+				$totalonline =& $vbulletin->fdwonlinecount['total'];
+			}
+		}
+		if (intval($vbulletin->maxloggedin['maxonline']) <= $totalonline)
+		{
+			$vbulletin->maxloggedin['maxonline'] = $totalonline;
+			$vbulletin->maxloggedin['maxonlinedate'] = TIMENOW;
+			build_datastore('maxloggedin', serialize($vbulletin->maxloggedin), 1);
+		}
+		
+		$recordusers = vb_number_format($vbulletin->maxloggedin['maxonline']);
+		$recorddate = vbdate($vbulletin->options['dateformat'], $vbulletin->maxloggedin['maxonlinedate'], true);
+		$recordtime = vbdate($vbulletin->options['timeformat'], $vbulletin->maxloggedin['maxonlinedate']);
+	}
+	else
+	{
+		$show['activeusers'] = false;
+	}
+	
+	$vbulletin->options['displayloggedin'] = 0;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Fetch user avatar</title>
+			<hookname>global_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_forumhome_enable'] AND $vbulletin->userinfo['userid'])
+{
+	require_once(DIR . '/includes/functions_user.php');
+	fetch_avatar_from_userinfo($vbulletin->userinfo, true);
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: Datastore</title>
+			<hookname>init_startup</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_forumhome_enable'])
+{
+	define('AVATAR_ON_NAVBAR', true);
+	if (!isset($datastore_fetch))
+	{
+		$datastore_fetch = array();
+	}
+	if (THIS_SCRIPT == 'index')
+	{
+		$datastore_fetch += array("'fdwforum'", "'fdwcolor'", "'fdwbirthdays'", "'fdwnewusers'", "'fdwinforum'", "'fdwonlinecount'");
+	}
+	else if (THIS_SCRIPT == 'forumdisplay' AND $vbulletin->options['fdw_forumhome_forumdisplay'])
+	{
+		$datastore_fetch += array("'fdwforum'", "'fdwcolor'");
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: New users (Delete)</title>
+			<hookname>userdata_delete</hookname>
+			<phpcode><![CDATA[if ($GLOBALS['vbulletin']->options['fdw_forumhome_enable'])
+{
+	require_once(DIR . '/includes/functions_fdwforum.php');
+	build_fdwnewusers();
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW ForumHome: New users (PostSave)</title>
+			<hookname>userdata_postsave</hookname>
+			<phpcode><![CDATA[if ($GLOBALS['vbulletin']->options['fdw_forumhome_enable'])
+{
+	require_once(DIR . '/includes/functions_fdwforum.php');
+	build_fdwnewusers();
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Control Panel Options" fieldname="cpoption">
+			<phrase name="fdw_forumcustom_mode" date="1293652910" username="Admin" version="1.5.0"><![CDATA[Mostrar temas]]></phrase>
+			<phrase name="fdw_forumcustom_mode1" date="1293652989" username="Admin" version="1.5.0"><![CDATA[Más relevantes]]></phrase>
+			<phrase name="fdw_forumcustom_mode2" date="1293653027" username="Admin" version="1.5.0"><![CDATA[Sin respuesta]]></phrase>
+			<phrase name="fdw_forumcustom_pp" date="1293653911" username="Admin" version="1.5.0"><![CDATA[Temas a mostrar]]></phrase>
+			<phrase name="fdw_forumcustom_show" date="1293653759" username="Admin" version="1.5.0"><![CDATA[Filtro]]></phrase>
+			<phrase name="fdw_forumcustom_show1" date="1293653809" username="Admin" version="1.5.0"><![CDATA[Ninguno]]></phrase>
+			<phrase name="fdw_forumcustom_show2" date="1293679504" username="Admin" version="1.5.0"><![CDATA[Sólo mensajes sin leer]]></phrase>
+			<phrase name="fdw_forumcustom_showall" date="1293652943" username="Admin" version="1.5.0"><![CDATA[Todos]]></phrase>
+			<phrase name="fdw_forumhome_avatar" date="1292250660" username="Admin" version="1.1.0"><![CDATA[Sólo los que tengan avatar]]></phrase>
+			<phrase name="fdw_forumhome_disorder" date="1292250671" username="Admin" version="1.1.0"><![CDATA[Desordenar]]></phrase>
+			<phrase name="fdw_forumhome_members" date="1292454825" username="Admin" version="1.1.0"><![CDATA[Mostrar sólo para miembros]]></phrase>
+			<phrase name="fdw_forumhome_mode" date="1292250682" username="Admin" version="1.1.0"><![CDATA[Modo de visualización]]></phrase>
+			<phrase name="fdw_forumhome_mode0" date="1292250752" username="Admin" version="1.1.0"><![CDATA[No mostrar]]></phrase>
+			<phrase name="fdw_forumhome_mode1" date="1292250764" username="Admin" version="1.1.0"><![CDATA[Aleatorio]]></phrase>
+			<phrase name="fdw_forumhome_mode2" date="1292250773" username="Admin" version="1.1.0"><![CDATA[Sólo amigos]]></phrase>
+			<phrase name="fdw_forumhome_mode3" date="1292250783" username="Admin" version="1.1.0"><![CDATA[Amigos y aleatorios]]></phrase>
+			<phrase name="fdw_forumhome_mode4" date="1292250792" username="Admin" version="1.1.0"><![CDATA[Amigos y más activos]]></phrase>
+			<phrase name="fdw_forumhome_mode5" date="1292250803" username="Admin" version="1.1.0"><![CDATA[Más activos primero]]></phrase>
+			<phrase name="fdw_forumhome_quantity" date="1292250693" username="Admin" version="1.1.0"><![CDATA[Usuarios a mostrar]]></phrase>
+		</phrasetype>
+		<phrasetype name="Scheduled Tasks" fieldname="cron">
+			<phrase name="task_fdwforum_desc" date="1291609589" username="Admin" version="1.0.0"><![CDATA[Obtener los datos de la tabla de estadísticas para ordenar los foros.]]></phrase>
+			<phrase name="task_fdwforum_log" date="1291609589" username="Admin" version="1.0.0" />
+			<phrase name="task_fdwforum_title" date="1291609589" username="Admin" version="1.0.0"><![CDATA[Portada personalizada]]></phrase>
+		</phrasetype>
+		<phrasetype name="Forum-Related" fieldname="forum">
+			<phrase name="fdw_forumhome_color" date="1291646588" username="Admin" version="1.0.0"><![CDATA[Color]]></phrase>
+			<phrase name="fdw_forumhome_normal" date="1291646621" username="Admin" version="1.0.0"><![CDATA[Normal]]></phrase>
+			<phrase name="fdw_forumhome_other" date="1291646571" username="Admin" version="1.0.0"><![CDATA[Otras opciones]]></phrase>
+			<phrase name="fdw_forumhome_size" date="1291646607" username="Admin" version="1.0.0"><![CDATA[Tamaño]]></phrase>
+			<phrase name="fdw_forumhome_small" date="1291646634" username="Admin" version="1.0.0"><![CDATA[Pequeño]]></phrase>
+		</phrasetype>
+		<phrasetype name="Forum Display" fieldname="forumdisplay">
+			<phrase name="forumcustom_breadcrumb" date="1293939817" username="Admin" version="1.5.0"><![CDATA[Temas que te recomendamos]]></phrase>
+			<phrase name="forumcustom_title" date="1293940196" username="Admin" version="1.5.0"><![CDATA[Te recomendamos]]></phrase>
+		</phrasetype>
+		<phrasetype name="GLOBAL" fieldname="global">
+			<phrase name="fdw_forumhome_mostvisited" date="1291659245" username="Admin" version="1.0.0"><![CDATA[Foros que frecuentas]]></phrase>
+			<phrase name="fdw_newusers" date="1291740039" username="Admin" version="1.0.0"><![CDATA[Últimos usuarios registrados]]></phrase>
+			<phrase name="fdw_read" date="1294147565" username="Admin" version="1.5.0"><![CDATA[Leído]]></phrase>
+			<phrase name="fdw_x_old" date="1291736971" username="Admin" version="1.0.0"><![CDATA[{1} años]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_forumcustom_cache_desc" date="1293924686" username="Admin" version="1.5.0"><![CDATA[Duración (en horas) de la caché de temas relevantes]]></phrase>
+			<phrase name="setting_fdw_forumcustom_cache_title" date="1293924686" username="Admin" version="1.5.0"><![CDATA[Caché]]></phrase>
+			<phrase name="setting_fdw_forumcustom_datecut_desc" date="1293927817" username="Admin" version="1.5.0"><![CDATA[Si se especifica, sólo serán considerados temas relevantes, los que hayan tenido actividad (nuevos mensajes) en el rango de días especificado]]></phrase>
+			<phrase name="setting_fdw_forumcustom_datecut_title" date="1293927817" username="Admin" version="1.5.0"><![CDATA[Actividad de temas relevantes]]></phrase>
+			<phrase name="setting_fdw_forumcustom_display_desc" date="1293652613" username="Admin" version="1.1.3"><![CDATA[Modo de visualización predeterminado]]></phrase>
+			<phrase name="setting_fdw_forumcustom_display_title" date="1293652613" username="Admin" version="1.1.3"><![CDATA[Visualización]]></phrase>
+			<phrase name="setting_fdw_forumcustom_enable_desc" date="1293649189" username="Admin" version="1.1.3"><![CDATA[Activar/desactivar foro inteligente]]></phrase>
+			<phrase name="setting_fdw_forumcustom_enable_title" date="1293649189" username="Admin" version="1.1.3"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="setting_fdw_forumcustom_forumlink_desc" date="1293815339" username="Admin" version="1.5.0"><![CDATA[Mostrar en la lista de temas el foro al que pertenece cada uno]]></phrase>
+			<phrase name="setting_fdw_forumcustom_forumlink_title" date="1293815339" username="Admin" version="1.5.0"><![CDATA[Mostrar foro]]></phrase>
+			<phrase name="setting_fdw_forumcustom_groups_desc" date="1293649286" username="Admin" version="1.1.3"><![CDATA[Grupos de usuarios que pueden ver el foro inteligente]]></phrase>
+			<phrase name="setting_fdw_forumcustom_groups_title" date="1293649286" username="Admin" version="1.1.3"><![CDATA[Grupos de usuarios]]></phrase>
+			<phrase name="setting_fdw_forumcustom_maxjump_desc" date="1293722999" username="Admin" version="1.5.0"><![CDATA[Número de elementos que tendrá la lista de configuración de temas a mostrar (resultado de la división del máximo en partes iguales)]]></phrase>
+			<phrase name="setting_fdw_forumcustom_maxjump_title" date="1293722999" username="Admin" version="1.5.0"><![CDATA[Lista de temas a mostrar]]></phrase>
+			<phrase name="setting_fdw_forumcustom_maxpp_desc" date="1293722896" username="Admin" version="1.5.0"><![CDATA[Máximo de temas a mostrar]]></phrase>
+			<phrase name="setting_fdw_forumcustom_maxpp_title" date="1293722896" username="Admin" version="1.5.0"><![CDATA[Máximo de temas]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevancedate_desc" date="1293928870" username="Admin" version="1.5.0"><![CDATA[Si se especifica, sólo suman puntos de relevancia los mensajes y puntuaciones dentro del rango de días a considerar<br /><strong>Nota:</strong> Puede afectar el rendimiento de la consulta]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevancedate_title" date="1293928870" username="Admin" version="1.5.0"><![CDATA[Temas relevantes (días a considerar)]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevanceposts_desc" date="1293927377" username="Admin" version="1.5.0"><![CDATA[Indique el número de puntos de relevancia que suma cada mensaje que contenga un tema]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevanceposts_title" date="1293927377" username="Admin" version="1.5.0"><![CDATA[Temas relevantes (mensajes)]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevancerate_desc" date="1293926997" username="Admin" version="1.5.0"><![CDATA[Indique el número de puntos de relevancia que suma cada unidad de promedio de calificación]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevancerate_title" date="1293926997" username="Admin" version="1.5.0"><![CDATA[Temas relevantes (calificación)]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevanceviews_desc" date="1293927085" username="Admin" version="1.5.0"><![CDATA[Indique el número de puntos de relevancia que suma cada visualización que tenga un tema]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevanceviews_title" date="1293927085" username="Admin" version="1.5.0"><![CDATA[Temas relevantes (visualizaciones)]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevancevote_desc" date="1293927342" username="Admin" version="1.5.0"><![CDATA[Indique el número de puntos de relevancia que suma cada punto positivo que tenga en el total de votos<br /><strong>Nota:</strong> Debe activar la compatibilidad con el plugin de puntuación de temas]]></phrase>
+			<phrase name="setting_fdw_forumcustom_relevancevote_title" date="1293927342" username="Admin" version="1.5.0"><![CDATA[Temas relevantes (puntuación)]]></phrase>
+			<phrase name="setting_fdw_forumcustom_vote_desc" date="1293840843" username="Admin" version="1.5.0"><![CDATA[Activar compatibilidad con plugin de puntuación de temas (productid=fdw_vote)<br /><strong>Nota:</strong> Asegúrese de tener instalado el producto indicado antes de habilitar esta opción.]]></phrase>
+			<phrase name="setting_fdw_forumcustom_vote_title" date="1293840843" username="Admin" version="1.5.0"><![CDATA[Puntuación de temas]]></phrase>
+			<phrase name="setting_fdw_forumhome_absdays_desc" date="1291609385" username="Admin" version="1.0.0"><![CDATA[Días que serán considerados al obtener las estadísticas de uso de los foros]]></phrase>
+			<phrase name="setting_fdw_forumhome_absdays_title" date="1291609385" username="Admin" version="1.0.0"><![CDATA[Días a considerar]]></phrase>
+			<phrase name="setting_fdw_forumhome_birthdays_desc" date="1292213833" username="Admin" version="1.0.1"><![CDATA[Opciones de desplegado de cumpleaños]]></phrase>
+			<phrase name="setting_fdw_forumhome_birthdays_title" date="1292213833" username="Admin" version="1.0.1"><![CDATA[Cumpleaños]]></phrase>
+			<phrase name="setting_fdw_forumhome_birthdaysall_desc" date="1292442974" username="Admin" version="1.1.0"><![CDATA[Mostrar en un tooltip la lista completa de cumpleaños]]></phrase>
+			<phrase name="setting_fdw_forumhome_birthdaysall_title" date="1292442974" username="Admin" version="1.1.0"><![CDATA[Lista de cumpleaños]]></phrase>
+			<phrase name="setting_fdw_forumhome_cache_desc" date="1291650150" username="Admin" version="1.0.0"><![CDATA[Duración de la caché de estadísticas de usuario individuales (en horas)]]></phrase>
+			<phrase name="setting_fdw_forumhome_cache_title" date="1291650150" username="Admin" version="1.0.0"><![CDATA[Caché]]></phrase>
+			<phrase name="setting_fdw_forumhome_cacheinforum_desc" date="1292421632" username="Admin" version="1.1.0"><![CDATA[Tiempo de validez (en minutos) de la caché del número de visualizaciones de cada foro]]></phrase>
+			<phrase name="setting_fdw_forumhome_cacheinforum_title" date="1292421632" username="Admin" version="1.1.0"><![CDATA[Caché de visualizaciones de foros]]></phrase>
+			<phrase name="setting_fdw_forumhome_cachetotals_desc" date="1292421547" username="Admin" version="1.1.0"><![CDATA[Tiempo de validez (en minutos) de la caché del total de usuarios en línea]]></phrase>
+			<phrase name="setting_fdw_forumhome_cachetotals_title" date="1292421547" username="Admin" version="1.1.0"><![CDATA[Caché de total de usuarios en línea]]></phrase>
+			<phrase name="setting_fdw_forumhome_drag_desc" date="1291650313" username="Admin" version="1.0.0"><![CDATA[Permitir reordenar las categorías]]></phrase>
+			<phrase name="setting_fdw_forumhome_drag_title" date="1291650313" username="Admin" version="1.0.0"><![CDATA[Reordenar]]></phrase>
+			<phrase name="setting_fdw_forumhome_enable_desc" date="1291522785" username="Admin" version="1.0.0"><![CDATA[Activar portada personalizada]]></phrase>
+			<phrase name="setting_fdw_forumhome_enable_title" date="1291522785" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar]]></phrase>
+			<phrase name="setting_fdw_forumhome_forumdisplay_desc" date="1299178559" username="Admin" version="1.6.0"><![CDATA[Activar también algunas de las características en forumdisplay.php]]></phrase>
+			<phrase name="setting_fdw_forumhome_forumdisplay_title" date="1299178559" username="Admin" version="1.6.0"><![CDATA[En forumdisplay.php]]></phrase>
+			<phrase name="setting_fdw_forumhome_group_desc" date="1293123187" username="Admin" version="1.1.1"><![CDATA[Grupos de usuarios que verán la portada personalizada]]></phrase>
+			<phrase name="setting_fdw_forumhome_group_title" date="1293123187" username="Admin" version="1.1.1"><![CDATA[Grupos de usuarios]]></phrase>
+			<phrase name="setting_fdw_forumhome_lastdays_desc" date="1291650031" username="Admin" version="1.0.0"><![CDATA[Días a considerar al obtener las estadísticas de uso individuales]]></phrase>
+			<phrase name="setting_fdw_forumhome_lastdays_title" date="1291650031" username="Admin" version="1.0.0"><![CDATA[Días a considerar (usuario)]]></phrase>
+			<phrase name="setting_fdw_forumhome_levelmax_desc" date="1292388683" username="Admin" version="1.1.0"><![CDATA[Máximo de elementos en cada nivel (separados por coma). Si no se especifica, se calculará la desviación estándar para cada elemento.]]></phrase>
+			<phrase name="setting_fdw_forumhome_levelmax_title" date="1292388683" username="Admin" version="1.1.0"><![CDATA[Elementos en nivel]]></phrase>
+			<phrase name="setting_fdw_forumhome_levels_desc" date="1291650039" username="Admin" version="1.0.0"><![CDATA[Número de niveles de relevancia de los foros.]]></phrase>
+			<phrase name="setting_fdw_forumhome_levels_title" date="1291650039" username="Admin" version="1.0.0"><![CDATA[Niveles]]></phrase>
+			<phrase name="setting_fdw_forumhome_loggedin_desc" date="1292213974" username="Admin" version="1.0.1"><![CDATA[Opciones de desplegado de usuarios en línea]]></phrase>
+			<phrase name="setting_fdw_forumhome_loggedin_title" date="1292213974" username="Admin" version="1.0.1"><![CDATA[Usuarios en línea]]></phrase>
+			<phrase name="setting_fdw_forumhome_most_desc" date="1291650529" username="Admin" version="1.0.0"><![CDATA[Activar caja de foros frecuentados por el usuario]]></phrase>
+			<phrase name="setting_fdw_forumhome_most_title" date="1291650529" username="Admin" version="1.0.0"><![CDATA[Foros frecuentes]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostcolor_desc" date="1291668435" username="Admin" version="1.0.0"><![CDATA[Color de la caja de foros populares]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostcolor_title" date="1291668435" username="Admin" version="1.0.0"><![CDATA[Color]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostlimit_desc" date="1291650572" username="Admin" version="1.0.0"><![CDATA[Máximo de elementos mostrados en la caja de foros frecuentes]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostlimit_title" date="1291650572" username="Admin" version="1.0.0"><![CDATA[Límite de foros frecuentes]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostmin_desc" date="1291657983" username="Admin" version="1.0.0"><![CDATA[Número mínimo de foros frecuentes detectados para que se muestre la caja.]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostmin_title" date="1291657983" username="Admin" version="1.0.0"><![CDATA[Mínimo de foros frecuentes]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostreorder_desc" date="1293463751" username="Admin" version="1.1.1"><![CDATA[Resaltar en las respectivas categorías los foros frecuentes del usuario]]></phrase>
+			<phrase name="setting_fdw_forumhome_mostreorder_title" date="1293463751" username="Admin" version="1.1.1"><![CDATA[Reordenar en base a foros frecuentes]]></phrase>
+			<phrase name="setting_fdw_forumhome_newavatars_desc" date="1291734078" username="Admin" version="1.0.0"><![CDATA[Sólo mostrar nuevos usuarios que tengan avatar.]]></phrase>
+			<phrase name="setting_fdw_forumhome_newavatars_title" date="1291734078" username="Admin" version="1.0.0"><![CDATA[Avatars]]></phrase>
+			<phrase name="setting_fdw_forumhome_newusers_desc" date="1292213854" username="Admin" version="1.0.1"><![CDATA[Número de nuevos usuarios a mostrar.]]></phrase>
+			<phrase name="setting_fdw_forumhome_newusers_title" date="1292213854" username="Admin" version="1.0.1"><![CDATA[Nuevos usuarios]]></phrase>
+			<phrase name="setting_fdw_forumhome_page_desc" date="1291522470" username="Admin" version="1.0.0"><![CDATA[Si se especifica, la dirección index.php?do=$valor lleva a la portada personalizada]]></phrase>
+			<phrase name="setting_fdw_forumhome_page_title" date="1291522470" username="Admin" version="1.0.0"><![CDATA[Página]]></phrase>
+			<phrase name="setting_fdw_forumhome_style_desc" date="1291402795" username="Admin" version="1.0.0"><![CDATA[Estilos en los que se mostrará la portada personalizada]]></phrase>
+			<phrase name="setting_fdw_forumhome_style_title" date="1291402795" username="Admin" version="1.0.0"><![CDATA[Estilos]]></phrase>
+			<phrase name="settinggroup_fdw_forumcustom_setup" date="1293649143" username="Admin" version="1.1.3"><![CDATA[Foro Inteligente]]></phrase>
+			<phrase name="settinggroup_fdw_forumhome_setup" date="1291402400" username="Admin" version="1.0.0"><![CDATA[Portada personalizada]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_forumhome_setup" displayorder="620">
+			<setting varname="fdw_forumhome_enable" displayorder="5">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_forumdisplay" displayorder="6">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_group" displayorder="7">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_style" displayorder="10">
+				<datatype>free</datatype>
+				<optioncode>fdwstyles:5</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_page" displayorder="20">
+				<datatype>free</datatype>
+			</setting>
+			<setting varname="fdw_forumhome_absdays" displayorder="30">
+				<datatype>number</datatype>
+				<defaultvalue>15</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_lastdays" displayorder="40">
+				<datatype>integer</datatype>
+				<defaultvalue>30</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_levels" displayorder="50">
+				<datatype>integer</datatype>
+				<defaultvalue>3</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_levelmax" displayorder="55">
+				<datatype>free</datatype>
+				<defaultvalue>1,2</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_cache" displayorder="60">
+				<datatype>integer</datatype>
+				<defaultvalue>24</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_drag" displayorder="70">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_most" displayorder="80">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_mostreorder" displayorder="85">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_mostlimit" displayorder="90">
+				<datatype>integer</datatype>
+				<defaultvalue>10</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_mostmin" displayorder="100">
+				<datatype>integer</datatype>
+				<defaultvalue>3</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_mostcolor" displayorder="110">
+				<datatype>integer</datatype>
+				<optioncode><![CDATA[select:eval
+$vbulletin->datastore->do_db_fetch("'fdwcolor'");
+
+$options = array();
+foreach ($vbulletin->fdwcolor AS $id => $color)
+{
+	$options["$id"] = $color['name'];
+}]]></optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_newusers" displayorder="130">
+				<datatype>integer</datatype>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_newavatars" displayorder="140">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_birthdays" displayorder="150">
+				<datatype>free</datatype>
+				<optioncode>fdwforumhomedisplay</optioncode>
+				<defaultvalue><![CDATA[a:4:{s:8:"quantity";i:10;s:4:"mode";i:2;s:8:"disorder";i:1;s:6:"avatar";i:0;}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_birthdaysall" displayorder="155">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_loggedin" displayorder="160">
+				<datatype>free</datatype>
+				<optioncode>fdwforumhomedisplay</optioncode>
+				<defaultvalue><![CDATA[a:4:{s:8:"quantity";i:10;s:4:"mode";i:2;s:8:"disorder";i:1;s:6:"avatar";i:0;}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_cachetotals" displayorder="180">
+				<datatype>number</datatype>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumhome_cacheinforum" displayorder="190">
+				<datatype>number</datatype>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+		</settinggroup>
+		<settinggroup name="fdw_forumcustom_setup" displayorder="630">
+			<setting varname="fdw_forumcustom_enable" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_groups" displayorder="20">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_display" displayorder="30">
+				<datatype>free</datatype>
+				<optioncode>fdwforumcustomdisplay</optioncode>
+				<defaultvalue><![CDATA[a:3:{s:4:"mode";i:0;s:4:"show";i:0;s:2:"pp";i:0;}]]></defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_maxpp" displayorder="40">
+				<datatype>integer</datatype>
+				<defaultvalue>100</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_maxjump" displayorder="50">
+				<datatype>integer</datatype>
+				<defaultvalue>4</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_forumlink" displayorder="60">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_vote" displayorder="70">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_cache" displayorder="80">
+				<datatype>integer</datatype>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_relevanceposts" displayorder="90">
+				<datatype>number</datatype>
+				<defaultvalue>2</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_relevancerate" displayorder="100">
+				<datatype>number</datatype>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_relevanceviews" displayorder="110">
+				<datatype>number</datatype>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_relevancevote" displayorder="120">
+				<datatype>number</datatype>
+				<defaultvalue>3</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_relevancedate" displayorder="130">
+				<datatype>number</datatype>
+				<defaultvalue>30</defaultvalue>
+			</setting>
+			<setting varname="fdw_forumcustom_datecut" displayorder="140">
+				<datatype>number</datatype>
+				<defaultvalue>30</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+		<cron varname="fdwforum" active="1" loglevel="1">
+			<filename>./includes/cron/fdwforum.php</filename>
+			<scheduling weekday="-1" day="-1" hour="23" minute="0" />
+		</cron>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

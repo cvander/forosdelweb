@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="fdw_edit_lock" active="1">
+	<title>Controlar edición de mensajes</title>
+	<description>No permitir editar un mensaje si hay una respuesta más reciente</description>
+	<version>1.0.0</version>
+	<url />
+	<versioncheckurl />
+	<dependencies>
+	</dependencies>
+	<codes>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title>FDW Edit: Check edition</title>
+			<hookname>editpost_start</hookname>
+			<phpcode><![CDATA[if ($vbulletin->options['fdw_edit_active'])
+{
+	if (!can_moderate($threadinfo['forumid'], 'caneditposts'))
+	{
+		if ($postinfo['postid'] != $threadinfo['lastpostid'])
+		{
+			$vbulletin->options['fdw_edit_except_u'] = unserialize($vbulletin->options['fdw_edit_except']);
+			if (!is_member_of($vbulletin->userinfo, $vbulletin->options['fdw_edit_except_u']))
+			{
+				eval(standard_error(fetch_error('fdw_edit_error')));
+			}
+		}
+	}
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>FDW Edit: Edit Button</title>
+			<hookname>postbit_display_complete</hookname>
+			<phpcode><![CDATA[if ($GLOBALS['vbulletin']->options['fdw_edit_active'] AND $this->post['editlink'])
+{
+	if (!can_moderate($this->thread['forumid'], 'caneditposts'))
+	{
+		if ($this->post['postid'] != $this->thread['lastpostid'])
+		{
+			if (!isset($GLOBALS['vbulletin']->options['fdw_edit_except_u'])) {
+				$GLOBALS['vbulletin']->options['fdw_edit_except_u'] = unserialize($GLOBALS['vbulletin']->options['fdw_edit_except']);
+			}
+			if (!is_member_of($GLOBALS['vbulletin']->userinfo, $GLOBALS['vbulletin']->options['fdw_edit_except_u']))
+			{
+				$this->post['editlink'] = '';
+			}
+		}
+	}
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="fdw_edit_error" date="1282013517" username="Admin" version="1.0.0"><![CDATA[No puede editar un mensaje si ya existe una respuesta más reciente al tema.]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_fdw_edit_active_desc" date="1282015181" username="Admin" version="1.0.0"><![CDATA[Activar/desactivar restricción de edición de mensajes sólo si aún no se ha respondido al mismo.]]></phrase>
+			<phrase name="setting_fdw_edit_active_title" date="1282015181" username="Admin" version="1.0.0"><![CDATA[Activar]]></phrase>
+			<phrase name="setting_fdw_edit_except_desc" date="1282016310" username="Admin" version="1.0.0"><![CDATA[Grupos de usuarios que no están limitados por la opción.<br /><br />
+<strong>NOTA: </strong>Usuarios con permisos de moderación pueden editar los mensajes sin restricción aunque no estén marcados en la lista de excepciones.]]></phrase>
+			<phrase name="setting_fdw_edit_except_title" date="1282016310" username="Admin" version="1.0.0"><![CDATA[Excepciones]]></phrase>
+			<phrase name="settinggroup_fdw_edit_options" date="1282013711" username="Admin" version="1.0.0"><![CDATA[Edición de mensajes]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="fdw_edit_options" displayorder="600">
+			<setting varname="fdw_edit_active" displayorder="10">
+				<datatype>boolean</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>1</defaultvalue>
+			</setting>
+			<setting varname="fdw_edit_except" displayorder="20">
+				<datatype>free</datatype>
+				<optioncode>usergroup:9</optioncode>
+				<defaultvalue>a:0:{}</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>
