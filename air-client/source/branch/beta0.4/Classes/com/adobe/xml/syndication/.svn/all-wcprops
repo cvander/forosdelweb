@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication
+END
+Namespaces.as
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/Namespaces.as
+END
+ParsingTools.as
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/ParsingTools.as
+END
+NewsParser.as
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/NewsParser.as
+END
+NewsFeedElement.as
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/NewsFeedElement.as
+END

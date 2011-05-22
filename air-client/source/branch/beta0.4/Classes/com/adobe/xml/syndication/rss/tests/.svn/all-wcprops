@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests
+END
+CategoryTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/CategoryTest.as
+END
+EnclosureTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/EnclosureTest.as
+END
+SourceTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/SourceTest.as
+END
+CloudTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/CloudTest.as
+END
+GuidTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/GuidTest.as
+END
+RSS10Test.as
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/RSS10Test.as
+END
+RSS20Test.as
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/adobe/xml/syndication/rss/tests/RSS20Test.as
+END

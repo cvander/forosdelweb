@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader
+END
+dateUtils.as
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/dateUtils.as
+END
+ArrayUtils.as
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/ArrayUtils.as
+END
+configView.as
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/configView.as
+END
+postItemInfo.as
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/postItemInfo.as
+END
+postView.as
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/postView.as
+END
+Main.as
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/Main.as
+END
+postItem.as
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/postItem.as
+END
+windowControl.as
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/windowControl.as
+END
+itemBase.as
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/itemBase.as
+END
+Tooltip.as
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/Tooltip.as
+END
+about.as
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/about.as
+END
+categoryItem.as
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/airforum/!svn/ver/14/branch/beta0.4/Classes/com/forosdelweb/reader/categoryItem.as
+END

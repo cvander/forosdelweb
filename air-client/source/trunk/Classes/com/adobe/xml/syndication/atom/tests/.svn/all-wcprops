@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests
+END
+CategoryTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/CategoryTest.as
+END
+LinkTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/LinkTest.as
+END
+RightsTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/RightsTest.as
+END
+TextTagTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/TextTagTest.as
+END
+Atom10Test.as
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/Atom10Test.as
+END
+TitleTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/TitleTest.as
+END
+AuthorTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/AuthorTest.as
+END
+PersonTagTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/PersonTagTest.as
+END
+GeneratorTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/GeneratorTest.as
+END
+ContentTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/ContentTest.as
+END
+ContributorTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/ContributorTest.as
+END
+SubTitleTest.as
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/atom/tests/SubTitleTest.as
+END

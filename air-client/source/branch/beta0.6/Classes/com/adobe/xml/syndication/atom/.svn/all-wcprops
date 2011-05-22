@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom
+END
+Category.as
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Category.as
+END
+FeedData.as
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/FeedData.as
+END
+Link.as
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Link.as
+END
+Rights.as
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Rights.as
+END
+TextTag.as
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/TextTag.as
+END
+Atom10.as
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Atom10.as
+END
+Entry.as
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Entry.as
+END
+Title.as
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Title.as
+END
+Author.as
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Author.as
+END
+PersonTag.as
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/PersonTag.as
+END
+Generator.as
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Generator.as
+END
+Content.as
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Content.as
+END
+Contributor.as
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/Contributor.as
+END
+SubTitle.as
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/airforum/!svn/ver/31/branch/beta0.6/Classes/com/adobe/xml/syndication/atom/SubTitle.as
+END

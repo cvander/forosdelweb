@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fwd>
+	<category>
+		<name><![CDATA[Diseño de Sitios web]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[Web general]]></name>
+				<id><![CDATA[91]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[(X)HTML]]></name>
+				<id><![CDATA[4]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[CSS]]></name>
+				<id><![CDATA[53]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Editores Web]]></name>
+				<id><![CDATA[17]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Diseño Gráfico]]></name>
+				<id><![CDATA[6]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Flash y Actionscript]]></name>
+				<id><![CDATA[16]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Accesibilidad y usabilidad ]]></name>
+				<id><![CDATA[85]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Aplicaciones pre-fabricadas]]></name>
+				<id><![CDATA[54]]></id>
+			</forum>
+		</forums>
+	</category>
+	<category>
+		<name><![CDATA[Programación para sitios web]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[PHP]]></name>
+				<id><![CDATA[18]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[ASP Clásico]]></name>
+				<id><![CDATA[15]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[.NET]]></name>
+				<id><![CDATA[29]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Javascript]]></name>
+				<id><![CDATA[13]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[AJAX]]></name>
+				<id><![CDATA[77]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Perl y CGI]]></name>
+				<id><![CDATA[12]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Java y JSP]]></name>
+				<id><![CDATA[45]]></id>
+			</forum><forum>
+				<name><![CDATA[Coldfusion]]></name>
+				<id><![CDATA[43]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Ruby on Rails]]></name>
+				<id><![CDATA[105]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[XML]]></name>
+				<id><![CDATA[26]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Bases de Datos]]></name>
+				<id><![CDATA[21]]></id>
+			</forum>
+		</forums>
+	</category>
+	<category>
+		<name><![CDATA[Haciendo negocios en el web]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[Negocios electrónicos]]></name>
+				<id><![CDATA[10]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Temas legales]]></name>
+				<id><![CDATA[83]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Posicionamiento SEO]]></name>
+				<id><![CDATA[64]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Ofertas de empleo]]></name>
+				<id><![CDATA[65]]></id>
+			</forum>
+		</forums>
+	</category>
+	<category>
+		<name><![CDATA[Administración de sitios web]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[Web Hosting]]></name>
+				<id><![CDATA[19]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Dominios y registradores de dominios]]></name>
+				<id><![CDATA[93]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Servidores Web]]></name>
+				<id><![CDATA[57]]></id>
+			</forum>
+		</forums>
+	</category>
+	<category>
+		<name><![CDATA[Seguridad y Redes]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[Seguridad y redes en dispositivos y software]]></name>
+				<id><![CDATA[20]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[VoIp]]></name>
+				<id><![CDATA[98]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Virus, troyanos y spyware]]></name>
+				<id><![CDATA[66]]></id>
+			</forum>
+		</forums>
+	</category>
+	<category>
+		<name><![CDATA[Temas generales de computación]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[Sistemas Operativos]]></name>
+				<id><![CDATA[27]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Software General]]></name>
+				<id><![CDATA[23]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Ofimática]]></name>
+				<id><![CDATA[90]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Hardware]]></name>
+				<id><![CDATA[11]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Fotografía]]></name>
+				<id><![CDATA[116]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Edición de video/audio y multimedia]]></name>
+				<id><![CDATA[3]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Programación]]></name>
+				<id><![CDATA[14]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Tecnologías móviles]]></name>
+				<id><![CDATA[30]]></id>
+			</forum>
+		</forums>
+	</category>
+	<category>
+		<name><![CDATA[Compartiendo con la comunidad]]></name>
+		<forums>
+			<forum>
+				<name><![CDATA[Actualidad tecnológica]]></name>
+				<id><![CDATA[60]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Video Juegos]]></name>
+				<id><![CDATA[25]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Ayuda General]]></name>
+				<id><![CDATA[2]]></id>
+			</forum>
+			<forum>
+				<name><![CDATA[Comentarios y soporte de Foros del Web]]></name>
+				<id><![CDATA[5]]></id>
+			</forum>
+		</forums>
+	</category>
+</fwd>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?><application xmlns="http://ns.adobe.com/air/application/1.0">
+
+  <id>com.forosdelweb.reader</id>
+
+  <version>0.5</version>
+
+  <filename>Foros del Web</filename>
+
+  <description>Siguiendo a foros del web desde tu desktop</description>
+
+  <name>Foros del Web</name>
+
+  <copyright/>
+
+  <initialWindow>
+    <content>fdw.swf</content>
+    <systemChrome>none</systemChrome>
+    <transparent>true</transparent>
+    <visible>true</visible>
+    <width>320</width>
+    <height>500</height>
+    <minSize>320 300</minSize>
+    <maximizable>false</maximizable>
+    <minimizable>true</minimizable>
+    <resizable>true</resizable>
+  </initialWindow>
+
+  <icon>
+    
+    
+    
+    
+    <image128x128>icons/fdw-moo128.png</image128x128>
+    <image48x48>icons/fdw-moo48.png</image48x48>
+    <image32x32>icons/fdw-moo32.png</image32x32>
+    <image16x16>icons/fdw-moo16.png</image16x16>
+  </icon>
+
+  <customUpdateUI>false</customUpdateUI>
+
+  <allowBrowserInvocation>false</allowBrowserInvocation>
+
+
+
+</application>

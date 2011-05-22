@@ -1,0 +1,71 @@
+-------------------------------------------------
+Cliente de lectura de Foros del Web
+-------------------------------------------------
+Ultima Modificacion :
+    15/08/2008
+
+Autor :
+    Enrique Chavez Garcia aka Tmeister
+   
+version :
+    0.6
+   
+Historia :
+
+	v0.6 ( 15-08-2008 )    
+		-	 BUGS
+			-	 Filtrado de foro, no se mantenia el filtro al actualizar.
+			-	 Link de pagina de respuesta a la conversación
+			-	 Preview de mensaje cuando estaba aplicado un filtro, la visualizacion
+				 de los mensajes se descomponia.
+		
+		-	 NUEVAS CARACTERISTICAS
+			-	 Nuevo icono para mostrar si se esta viendo el preview del
+				 mensaje (flecha)
+			-	 Cambio de posicion de iconos "ver tema" "responder tema", solo se
+				 visualizan cuando se ve el preview del mensaje, abajo-izquierda
+			-	 El mensaje se marca como leido al leer el preview
+			-	 Cambio de icono de la funcion "Always on top"
+			-	 Cambio de titulo del cliente al aplicar filtro, el titulo es 
+				 el nombre del foro por el cual se esta haciendo el filtro
+			-	 Se cambio el texto del tooltip cuando esta aplicado un filtro.
+			-	 Se agrego indicador de la version del cliente, abajo-izquierda.
+
+
+	v0.5 (13-08-2008)
+        -    NUEVAS CARACTERISTICAS
+            -     Avatar de usuario
+            -     Icono Always on Top
+            -     Marcar todo como leido
+            -     Link a perfil de usuario (desde avatar y desde nombre de usuario)
+            -     Link a Tema (icono)
+            -     Link a responder tema (icono)
+            -     Muestra y oculta un preview de 200 caracteres del tema
+                 (Dando click en el titulo)
+            -     Ventana de aviso tipo Toast Mostrando nuevos temas
+                 (cuando el cliente esta minimizado)
+           
+    v0.4 (06-08-2008)
+        -    BUGS
+            -    Corrección de bug al mostrar timepo transcurrido desde la publicacion del
+                 post.
+            -    Corrección de bug del systray, la ventana no se mostraba en primer plano.
+            -    Corrección de bug preload, El preload se quedaba encima de los listados.
+       
+        -    NUEVAS CARACTERISTICAS
+            -    Cambio de iconografia.
+            -    Se agregaron tooltips a los botones
+            -    Se agrero Timer para actualizar automaticamente los posts cada 5 minutos.
+            -    Se agrego el boton de configuracion en la barra inferior.
+            -    Se cambio la accion del icono de la aplicación (ahora abre la ventana
+                 de about).
+            -    Se agrego evento a los nombres de las categorias (vista configuracion) para
+                 expander y contraer foros.
+            -    Se agrego aviso de autoupdate
+            -    Se cambio el icono de estrella por icono de mail (mensajes leidos)
+            -    Se cambio el color de texto del nombre de usuario en la vista de post
+            -    Se cambio el diseño de la barra de scroll
+       
+
+    v0.3 (02/08/2008)
+        -    Primer Release (Beta Privado). 

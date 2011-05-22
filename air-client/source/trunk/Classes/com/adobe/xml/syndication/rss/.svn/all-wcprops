@@ -1,0 +1,107 @@
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/airforum/!svn/ver/25/trunk/Classes/com/adobe/xml/syndication/rss
+END
+Category.as
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Category.as
+END
+IRSS.as
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/IRSS.as
+END
+IChannel.as
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/IChannel.as
+END
+Image10.as
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Image10.as
+END
+Image20.as
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Image20.as
+END
+Guid.as
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Guid.as
+END
+IImage.as
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/IImage.as
+END
+Item10.as
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Item10.as
+END
+Enclosure.as
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Enclosure.as
+END
+Item20.as
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/airforum/!svn/ver/25/trunk/Classes/com/adobe/xml/syndication/rss/Item20.as
+END
+Source.as
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Source.as
+END
+Cloud.as
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Cloud.as
+END
+IItem.as
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/IItem.as
+END
+RSS10.as
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/RSS10.as
+END
+Channel10.as
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Channel10.as
+END
+RSS20.as
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/RSS20.as
+END
+Channel20.as
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/airforum/!svn/ver/6/trunk/Classes/com/adobe/xml/syndication/rss/Channel20.as
+END
