@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+var fdwUrl='http://www.forosdelweb.com/';
+var fdwOpenPage='usercp.php';
+var fdwUser='';
+var fdwNoti=0;
+var fdwValo=0;
+var fdwSusc=0;
+var fdwPriv=0;
+var fdwVisi=0;
+var fdwRequ=0;
+var fdwTimer=null;
+var fdwDelay=300000;
+
+// Badge colors
+var BADGE_ACTIVE = {color:[204, 0, 51, 255]};
+var BADGE_LOADING = {color:[204, 204, 51, 255]};
+var BADGE_INACTIVE = {color:[153, 153, 153, 255]};
+
+function loadData() {
+ var xhr=new XMLHttpRequest();
+ xhr.open('GET', 'http://www.forosdelweb.com/usercp.php?fdwapi=1', true);
+ xhr.onreadystatechange=function(){
+  if(xhr.readyState == 4){
+   var xmlDoc=new DOMParser().parseFromString(xhr.responseText,'text/xml');
+   chrome.browserAction.setBadgeBackgroundColor(BADGE_INACTIVE);
+   var userinfo=xmlDoc.getElementsByTagName('userinfo')[0];
+
+   if(!userinfo){
+    chrome.browserAction.setIcon({path:'icon-gray.png'});
+    chrome.browserAction.setTitle({title: 'Foros del Web\n--Desconectado--'});
+    chrome.browserAction.setBadgeText({text: '?'});
+    return;
+   }
+   else{
+    fdwUser=userinfo.getAttribute('username');
+    fdwRequ=parseInt(userinfo.getAttribute('friendrequest'));
+    fdwPriv=parseInt(userinfo.getAttribute('privatemessage'));
+    fdwVisi=parseInt(userinfo.getAttribute('visitormessage'));
+    fdwNoti=0;
+    fdwValo=0;
+    fdwSusc=0;
+    var notif=xmlDoc.getElementsByTagName('notification');
+    for (var i=0;i<notif.length;i++){
+     if(notif[i].getAttribute('highlight')=='true'){
+      fdwNoti++;
+      if(notif[i].getAttribute('type')=='1')
+       fdwValo++;
+      else if(notif[i].getAttribute('type')=='8')
+       fdwSusc++;
+     }
+    }
+   }
+  }
+  else return;
+
+  var fdwTitle=fdwUser+' - Foros del Web';
+  if(fdwValo>0) fdwTitle+='\n> '+fdwValo+' Valoraciones';
+  if(fdwSusc>0) fdwTitle+='\n> '+fdwSusc+' Suscripciones';
+  if(fdwPriv>0) fdwTitle+='\n> '+fdwPriv+' Mensajes Privados';
+  if(fdwVisi>0) fdwTitle+='\n> '+fdwVisi+' Mensajes de Visitante';
+  if(fdwRequ>0) fdwTitle+='\n> '+fdwRequ+' Peticiones de Amistad';
+
+  chrome.browserAction.setIcon({path:'icon.png'});
+  chrome.browserAction.setTitle({title: fdwTitle});
+  chrome.browserAction.setBadgeText({text: fdwNoti+''});
+  if(fdwNoti>0) chrome.browserAction.setBadgeBackgroundColor(BADGE_ACTIVE);
+ }
+ xhr.send(null);
+ window.clearTimeout(fdwTimer);
+ fdwTimer=window.setTimeout(loadData,fdwDelay);
+}
+
+function init() {
+ fdwDelay=parseInt(localStorage.refreshInterval || '300000');
+ fdwOpenPage=localStorage.openPage || 'usercp.php';
+
+ chrome.browserAction.setIcon({path:'icon-gray.png'});
+ chrome.browserAction.setBadgeText({text: '...'});
+ chrome.browserAction.setBadgeBackgroundColor(BADGE_LOADING);
+ loadData();
+}
+
+// Compares url to targetUrl modulo #... or ?... at end
+function isUrl(url, targetUrl) {
+ if(url.indexOf(targetUrl)!=0) return false;
+ return url.length == targetUrl.length || url[targetUrl.length] == '?' || url[targetUrl.length] == '#';
+}
+// *** URL opener
+// goToUrl selects tab whose url satisfies isUrl(tab.url, url)
+// otherwise opens a new tab with url
+function openUrl(uri) {
+ chrome.tabs.getAllInWindow(undefined, function(tabs) {
+  for (var i = 0, tab; tab = tabs[i]; i++) {
+   if (tab.url && isUrl(tab.url, uri)) {
+    chrome.tabs.update(tab.id, {url: uri, selected: true});
+    return;
+   }
+  }
+ chrome.tabs.create({url: uri});
+ });
+}
+
+// Called when the user clicks on the browser 
+chrome.browserAction.onClicked.addListener(function(tab){
+ openUrl(fdwUrl+fdwOpenPage);
+ loadData();
+});
+</script>
+</head>
+
+<body onload="init()">
+</body>
+</html>
+

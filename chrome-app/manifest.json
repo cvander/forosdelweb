@@ -1,15 +1,14 @@
 {
     "name": "Foros del Web",
-    "description": "Foros del Web",
+    "description": "Comunidad para aprender y ampliar conocimientos de php, .net, diseño, html, seo, programación, software, diseño y desarrollo web.",
     "version": "1.0",
-    "icons": {
-        "128": "forosdelweb-128.png"
-    },
     "app": {
-        "urls": ["http://www.forosdelweb.com/"],
         "launch": {
             "web_url": "http://www.forosdelweb.com/"
          }
+    },
+    "icons": {
+        "128": "icon128.png"
     },
     "options_page": "http://www.forosdelweb.com/profile.php?do=editoptions"
 }

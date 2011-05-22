@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+html, body{margin:0;padding:0}
+body{font-family:'Liberation Serif', Times, 'Times New Roman', serif}
+h1{color:#fff;background:#000;margin:0;padding:0 1em}
+h2{padding:0 1em}
+p{padding:0 1em}
+</style>
+<script type="text/javascript">
+var saveButton;
+var refreshIntervalTextbox;
+var openPageTextbox;
+
+function save(){
+ if(refreshIntervalTextbox.value && parseFloat(refreshIntervalTextbox.value) >= 0.1){
+  localStorage.refreshInterval = Math.round(parseFloat(refreshIntervalTextbox.value)*60000);
+ }
+ else {localStorage.refreshInterval = 300000;}
+
+ if(openPageTextbox.value){
+  localStorage.openPage = openPageTextbox.value;
+ }
+ else {localStorage.openPage = 'usercp.php';}
+
+ init();
+ chrome.extension.getBackgroundPage().init();
+}
+
+function init(){
+ refreshIntervalTextbox = document.getElementById("refresh-interval");
+ openPageTextbox = document.getElementById("open-page");
+ saveButton = document.getElementById("save-button");
+
+ refreshIntervalTextbox.value = (parseInt(localStorage.refreshInterval)) ? parseInt(localStorage.refreshInterval)/60000 + '' : "5";
+ openPageTextbox.value = (localStorage.openPage) ? localStorage.openPage : "usercp.php";
+
+ disableSave();
+}
+
+function enableSave(){saveButton.disabled = false;}
+function disableSave(){saveButton.disabled = true;}
+</script>
+</head>
+
+<body onload="init();">
+<h1><img src="icon48.png" alt="[icon]" /> Foros del web: Panel de Control</h1>
+<h2>Opciones</h2>
+<p><label for="open-page">Al hacer clic abrir:<br/>
+http://www.forosdelweb.com/</label><input type="text" id="open-page" oninput="enableSave()" /> [default: usercp.php]</p>
+<p>Intervalo de actualizacion (minutos):<input type="text" id="refresh-interval" oninput="enableSave()" /> [por defecto: 5]</p>
+<p><input type="button" value="Guardar" id="save-button" onclick="save()" /></p>
+</body>
+</html>
